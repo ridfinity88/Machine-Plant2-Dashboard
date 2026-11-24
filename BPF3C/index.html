@@ -482,7 +482,7 @@ const CONFIG = {
   SHEET_ID: "1j8p-hp8sOWFbmdl5pW7B4yB24VVwcMiwZl5H9rtiP-M", //[cite: 2]
   SHEET_NAME: "Dashboard", //[cite: 2]
   RANGE: "B5:J5", //[cite: 2]
-  APPS_SCRIPT_URL: "https://script.google.com/macros/s/วางลิงก์_WEB_APP_ของคุณที่นี่/exec",
+  APPS_SCRIPT_URL: "https://script.google.com/macros/s/AKfycbyNCYa3W9YFASHkWCCWcauP5f0CQN4PzM7AKHpPCNWEHZZfVSs15S5XKFL97rQGFC3Jyw/exec",
   REFRESH_SECONDS: 10, //[cite: 2]
   FIELDS: [
     { label: "จำนวนที่ต้องการผลิต", unit: "ชิ้น" }, //[cite: 2]
@@ -579,7 +579,7 @@ async function saveCapMinToI2() {
   }
 
   const scriptUrl = String(CONFIG.APPS_SCRIPT_URL || "").trim();
-  if (!scriptUrl.startsWith("https://script.google.com/macros/s/AKfycbyNCYa3W9YFASHkWCCWcauP5f0CQN4PzM7AKHpPCNWEHZZfVSs15S5XKFL97rQGFC3Jyw/exec")) {
+  if (!scriptUrl.startsWith("https://script.google.com/macros/s/")) {
     errorEl.textContent = "กรุณาใส่ Web App URL ของ Google Apps Script ให้ถูกต้องก่อน";
     return;
   }
