@@ -479,26 +479,26 @@ body{
 
 <script>
 const CONFIG = {
-  SHEET_ID: "1j8p-hp8sOWFbmdl5pW7B4yB24VVwcMiwZl5H9rtiP-M",
-  SHEET_NAME: "Dashboard",
-  RANGE: "B5:J5",
-  APPS_SCRIPT_URL: "YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL",
-  REFRESH_SECONDS: 10,
+  SHEET_ID: "1j8p-hp8sOWFbmdl5pW7B4yB24VVwcMiwZl5H9rtiP-M", //[cite: 2]
+  SHEET_NAME: "Dashboard", //[cite: 2]
+  RANGE: "B5:J5", //[cite: 2]
+  APPS_SCRIPT_URL: "https://script.google.com/macros/s/วางลิงก์_WEB_APP_ของคุณที่นี่/exec",
+  REFRESH_SECONDS: 10, //[cite: 2]
   FIELDS: [
-    { label: "จำนวนที่ต้องการผลิต", unit: "ชิ้น" },
-    { label: "จำนวนที่ผลิตได้", unit: "ชิ้น" },
-    { label: "CAP. = PC / MIN", unit: "" },
-    { label: "Efficiency", unit: "" }
+    { label: "จำนวนที่ต้องการผลิต", unit: "ชิ้น" }, //[cite: 2]
+    { label: "จำนวนที่ผลิตได้", unit: "ชิ้น" }, //[cite: 2]
+    { label: "CAP. = PC / MIN", unit: "" }, //[cite: 2]
+    { label: "Efficiency", unit: "" } //[cite: 2]
   ],
-  ACCESS_PASSWORD: "RiD FINITY Designed",
+  ACCESS_PASSWORD: "RiD FINITY Designed", //[cite: 2]
   PROTECTED_LINKS: {
     addProduct: {
-      title: "เพิ่มสินค้า",
-      url: "https://docs.google.com/spreadsheets/d/1j8p-hp8sOWFbmdl5pW7B4yB24VVwcMiwZl5H9rtiP-M/edit?gid=563490732#gid=563490732"
+      title: "เพิ่มสินค้า", //[cite: 2]
+      url: "https://docs.google.com/spreadsheets/d/1j8p-hp8sOWFbmdl5pW7B4yB24VVwcMiwZl5H9rtiP-M/edit?gid=563490732#gid=563490732" //[cite: 2]
     },
     history: {
-      title: "History",
-      url: "https://docs.google.com/spreadsheets/d/1j8p-hp8sOWFbmdl5pW7B4yB24VVwcMiwZl5H9rtiP-M/edit?gid=565606583#gid=565606583"
+      title: "History", //[cite: 2]
+      url: "https://docs.google.com/spreadsheets/d/1j8p-hp8sOWFbmdl5pW7B4yB24VVwcMiwZl5H9rtiP-M/edit?gid=565606583#gid=565606583" //[cite: 2]
     }
   }
 };
@@ -579,8 +579,8 @@ async function saveCapMinToI2() {
   }
 
   const scriptUrl = String(CONFIG.APPS_SCRIPT_URL || "").trim();
-  if (!scriptUrl || scriptUrl === "https://script.google.com/macros/s/AKfycbyNCYa3W9YFASHkWCCWcauP5f0CQN4PzM7AKHpPCNWEHZZfVSs15S5XKFL97rQGFC3Jyw/exec") {
-    errorEl.textContent = "กรุณาตั้งค่า CONFIG.APPS_SCRIPT_URL เป็น URL ของ Google Apps Script ก่อน";
+  if (!scriptUrl.startsWith("https://script.google.com/macros/s/AKfycbyNCYa3W9YFASHkWCCWcauP5f0CQN4PzM7AKHpPCNWEHZZfVSs15S5XKFL97rQGFC3Jyw/exec")) {
+    errorEl.textContent = "กรุณาใส่ Web App URL ของ Google Apps Script ให้ถูกต้องก่อน";
     return;
   }
 
@@ -588,12 +588,17 @@ async function saveCapMinToI2() {
   saveBtn.textContent = "กำลังบันทึก...";
 
   try {
-    const queryUrl = new URL(scriptUrl);
-    queryUrl.searchParams.set("action", "setCapMinI2");
-    queryUrl.searchParams.set("value", raw);
-    queryUrl.searchParams.set("_t", String(Date.now()));
+    const sep = scriptUrl.includes("?") ? "&" : "?";
+    const endpoint =
+      scriptUrl +
+      sep +
+      "action=setCapMinI2" +
+      "&value=" +
+      encodeURIComponent(raw) +
+      "&_t=" +
+      Date.now();
 
-    await fetch(queryUrl.toString(), {
+    await fetch(endpoint, {
       method: "GET",
       mode: "no-cors"
     });
@@ -601,7 +606,7 @@ async function saveCapMinToI2() {
     closeCapMinModal();
     setTimeout(loadSheet, 1000);
   } catch (err) {
-    errorEl.textContent = "บันทึกไม่สำเร็จ: " + (err && err.message ? err.message : "URL ไม่ถูกต้อง");
+    errorEl.textContent = "บันทึกไม่สำเร็จ: " + (err && err.message ? err.message : "เกิดข้อผิดพลาด");
   } finally {
     saveBtn.disabled = false;
     saveBtn.textContent = "บันทึก";
