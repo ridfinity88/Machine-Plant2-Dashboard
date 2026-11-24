@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#101a2b">
-<title>Production Line Dashboard</title>
+<title>BPF4C Line Dashboard</title>
 <style>
 :root{
   --bg:#0b1423;
@@ -39,12 +39,21 @@ body{
 .brand h1{font-size:clamp(20px,3vw,29px);margin:3px 0 0;letter-spacing:.2px}
 .topright{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end}
 .status{
-  display:flex;align-items:center;gap:8px;
-  border:1px solid var(--line);background:#13243a;
-  padding:10px 16px;border-radius:30px;color:#c8d7e8;font-size:12px;font-weight:700;
-  transition:border-color .3s, color .3s;
+  display:inline-flex;align-items:center;gap:7px;
+  border:1px solid rgba(66,214,208,.28);background:#13243a;
+  padding:9px 15px;border-radius:30px;color:var(--text);font-size:12px;font-weight:700;
+  transition:border-color .2s, color .2s, transform .2s, background .2s, box-shadow .2s;
+  text-decoration:none;cursor:pointer;font-family:inherit;
+  box-shadow:0 4px 14px rgba(0,0,0,.18);
 }
-.dot{width:8px;height:8px;border-radius:50%;background:var(--lime);box-shadow:0 0 12px var(--lime);transition:all .3s}
+.status:hover{
+  transform:translateY(-1px);
+  border-color:var(--cyan);
+  background:linear-gradient(145deg,#1f3a59,#162a42);
+  color:var(--cyan);
+  box-shadow:0 6px 18px rgba(66,214,208,.18);
+}
+.home-icon{width:15px;height:15px;flex-shrink:0}
 
 /* Action Buttons (เพิ่มสินค้า & History) */
 .nav-btn{
@@ -76,7 +85,8 @@ body{
   color:#08202c;
 }
 
-.hero{display:grid;grid-template-columns:1.3fr .7fr;gap:18px;margin-bottom:18px}
+/* เพิ่มความกว้าง PRODUCTION OVERVIEW และลดขนาด สถานะการผลิต */
+.hero{display:grid;grid-template-columns:1.58fr .42fr;gap:18px;margin-bottom:18px}
 .hero-main,.hero-side,.metric,.production{
   background:linear-gradient(145deg,rgba(25,43,67,.96),rgba(17,32,51,.96));
   border:1px solid var(--line);
@@ -119,10 +129,10 @@ body{
 .sku-label{color:var(--muted);font-weight:500;font-size:11px}
 .product-name{font-size:clamp(20px,2.4vw,30px);font-weight:800;line-height:1.3;margin:0;color:var(--text);word-break:break-word}
 
-.hero-side{padding:23px;display:flex;flex-direction:column;justify-content:space-between}
-.side-label{color:var(--muted);font-size:12px}
-.big-status{font-size:clamp(22px,2.2vw,28px);font-weight:800;margin:10px 0 4px;color:var(--lime);transition:color .3s}
-.progress-head{display:flex;justify-content:space-between;color:var(--muted);font-size:11px;margin:15px 0 8px;font-weight:600}
+.hero-side{padding:18px;display:flex;flex-direction:column;justify-content:space-between}
+.side-label{color:var(--muted);font-size:11px}
+.big-status{font-size:clamp(16px,1.45vw,20px);font-weight:800;margin:8px 0 4px;line-height:1.3;color:var(--lime);transition:color .3s}
+.progress-head{display:flex;justify-content:space-between;color:var(--muted);font-size:11px;margin:12px 0 6px;font-weight:600}
 .progress{height:10px;border-radius:20px;background:#0b1728;overflow:hidden;border:1px solid rgba(255,255,255,.04)}
 .progress span{display:block;height:100%;width:0%;background:linear-gradient(90deg,var(--cyan),var(--lime));border-radius:20px;transition:width .5s ease}
 
@@ -131,6 +141,26 @@ body{
 .metric:after{content:"";position:absolute;right:-18px;bottom:-25px;width:80px;height:80px;border-radius:50%;background:#42d6d00b;pointer-events:none}
 .metric-label{color:var(--muted);font-size:12px;line-height:1.4;font-weight:600}
 .metric-value{font-size:clamp(21px,2.1vw,29px);font-weight:800;margin-top:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* ปุ่ม Efficiency */
+.eff-btn{
+  display:inline-flex;align-items:center;justify-content:space-between;gap:6px;
+  background:rgba(66,214,208,.12);
+  border:1px solid rgba(66,214,208,.35);
+  color:var(--cyan);
+  padding:4px 10px;
+  border-radius:10px;
+  font-family:inherit;
+  font-size:12px;
+  font-weight:700;
+  cursor:pointer;
+  transition:all .2s ease;
+  align-self:flex-start;
+}
+.eff-btn:hover{
+  background:linear-gradient(135deg,var(--cyan),#4c9bdb);
+  color:#08202c;
+}
 
 /* กล่อง Efficiency รองรับข้อความยาวหลายบรรทัดได้สมบูรณ์ ไม่ถูกตัด */
 .metric-efficiency{
@@ -165,9 +195,26 @@ body{
 .factory-glow{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 100%,#42d6d018,transparent 55%)}
 .pipe{position:absolute;left:0;right:0;bottom:43px;height:17px;background:linear-gradient(#627b91,#263d55);border-radius:8px;box-shadow:0 8px 0 #0a1726}
 .belt{position:absolute;left:0;right:0;bottom:28px;height:14px;background:repeating-linear-gradient(90deg,#8094a8 0 18px,#425b74 18px 35px);animation:moveBelt .55s linear infinite;border-radius:8px}
+.belt.stopped{animation-play-state:paused}
 .leg{position:absolute;bottom:0;height:30px;width:8px;background:#344b63}
 .leg.l{left:15%}.leg.r{right:15%}
-.sausage{position:absolute;bottom:61px;left:-100px;width:91px;height:28px;border-radius:50px;background:linear-gradient(180deg,#ffbd83,#df754c 60%,#a84936);border:2px solid #ffce9d;box-shadow:inset 0 -4px 0 #9e4737,0 7px 13px #0005;animation:runAcross 7s linear infinite;z-index:2}
+
+/* ตัวการ์ตูนวิ่ง 3 ชิ้น ต่อกันมา */
+.train-group{
+  position:absolute;
+  bottom:61px;
+  left:-320px;
+  display:flex;
+  align-items:center;
+  gap:12px;
+  animation:runTrainAcross 7s linear infinite;
+  z-index:2;
+}
+.train-group.hidden{display:none}
+
+.sausage{position:relative;width:91px;height:28px;border-radius:50px;background:linear-gradient(180deg,#ffbd83,#df754c 60%,#a84936);border:2px solid #ffce9d;box-shadow:inset 0 -4px 0 #9e4737,0 7px 13px #0005;animation:hopItem .6s ease-in-out infinite}
+.sausage.item2{animation-delay:.18s}
+.sausage.item3{animation-delay:.36s}
 .sausage:before,.sausage:after{content:"";position:absolute;top:7px;width:8px;height:12px;border-radius:50%;background:#f6a16d;border:1px solid #ffcf9c}
 .sausage:before{left:-5px}.sausage:after{right:-5px}
 .face{position:absolute;right:21px;top:7px;width:20px;height:9px;border-bottom:2px solid #542d2a;border-radius:50%}
@@ -176,10 +223,18 @@ body{
 .shoe{position:absolute;width:16px;height:5px;background:#dce8f0;border-radius:5px;bottom:-5px;left:24px;animation:feet .25s ease-in-out infinite alternate}
 .shoe.two{left:50px;animation-delay:.12s}
 .spark{position:absolute;bottom:78px;left:calc(50% - 5px);color:#ffcf78;font-size:17px;animation:twinkle 1.4s infinite}
+.spark.hidden{display:none}
 .scene-note{position:absolute;right:16px;top:14px;color:#9bb1c8;font-size:11px}
 .scene-label{position:absolute;left:16px;top:14px;color:#d6e7f5;font-size:11px;font-weight:700}
 
-@keyframes runAcross{0%{left:-100px;transform:translateY(0) rotate(-2deg)}15%{transform:translateY(-5px) rotate(2deg)}30%{transform:translateY(0) rotate(-2deg)}45%{transform:translateY(-5px) rotate(2deg)}60%{transform:translateY(0) rotate(-2deg)}75%{transform:translateY(-5px) rotate(2deg)}100%{left:calc(100% + 100px);transform:translateY(0) rotate(-2deg)}}
+@keyframes runTrainAcross{
+  0%{left:-320px}
+  100%{left:calc(100% + 40px)}
+}
+@keyframes hopItem{
+  0%,100%{transform:translateY(0) rotate(-2deg)}
+  50%{transform:translateY(-5px) rotate(2deg)}
+}
 @keyframes moveBelt{to{background-position:35px 0}}
 @keyframes arms{to{transform:rotate(35deg)}}
 @keyframes feet{to{transform:translateY(-5px) rotate(12deg)}}
@@ -187,7 +242,7 @@ body{
 
 .footer{display:flex;justify-content:space-between;gap:12px;margin-top:14px;color:#7189a3;font-size:11px}
 
-/* Password Modal */
+/* Password & CAP./MIN Modal */
 .modal-backdrop{
   position:fixed;inset:0;
   background:rgba(6,13,24,.78);
@@ -204,8 +259,8 @@ body{
   padding:24px;
   box-shadow:0 24px 60px rgba(0,0,0,.55);
 }
-.modal-title{font-size:17px;font-weight:800;margin:0 0 6px;color:var(--text);display:flex;align-items:center;gap:8px}
-.modal-sub{font-size:12px;color:var(--muted);margin:0 0 16px;line-height:1.5}
+.modal-title{font-size:17px;font-weight:800;margin:0 0 14px;color:var(--text);display:flex;align-items:center;gap:8px}
+.modal-sub{font-size:12px;color:var(--muted);margin:-8px 0 16px;line-height:1.5}
 .modal-input{
   width:100%;padding:12px 14px;border-radius:12px;
   border:1px solid var(--line);
@@ -230,7 +285,7 @@ body{
 @media(max-width:1100px){
   .metrics{grid-template-columns:repeat(2,minmax(0,1fr))}
   .metric-datetime{grid-column:1 / -1}
-  .hero{grid-template-columns:1fr .85fr}
+  .hero{grid-template-columns:1fr .65fr}
 }
 @media(max-width:650px){
   .wrap{padding:17px 13px 24px}
@@ -259,14 +314,18 @@ body{
       <div class="logo">⚙</div>
       <div>
         <div class="eyebrow">SMART FACTORY • LIVE MONITORING</div>
-        <h1>Production Line Dashboard</h1>
+        <h1>BPF4C Line Dashboard</h1>
       </div>
     </div>
     <div class="topright">
-      <div class="status" id="statusPill">
-        <span class="dot" id="statusDot"></span>
-        <span id="connection">Offline</span>
-      </div>
+      <a href="https://ridfinity88.github.io/Machine-Plant2-Dashboard/index.html" class="status" id="statusPill" title="หน้าแรก">
+        <svg class="home-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M3 10.5L12 3l9 7.5"></path>
+          <path d="M5 9.5V20a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9.5"></path>
+          <path d="M9 21V13h6v8"></path>
+        </svg>
+        <span id="connection">หน้าแรก</span>
+      </a>
       <button type="button" class="nav-btn primary" onclick="requestProtectedLink('addProduct')">＋ เพิ่มสินค้า</button>
       <button type="button" class="nav-btn" onclick="requestProtectedLink('history')">🕒 History</button>
     </div>
@@ -336,7 +395,9 @@ body{
     </article>
 
     <article class="metric">
-      <div class="metric-label" id="label3">Efficiency</div>
+      <div class="metric-label" id="label3">
+        <button type="button" class="eff-btn" onclick="openCapMinModal()">Efficiency</button>
+      </div>
       <div class="metric-value metric-efficiency" id="value3">—</div>
     </article>
   </section>
@@ -344,7 +405,6 @@ body{
   <section class="production">
     <div class="production-head">
       <div>
-        <h3>กำลังเดินไลน์การผลิต</h3>
         <small>LIVE PRODUCTION • ANIMATED FACTORY SCENE</small>
       </div>
       <small id="lineRunningBadge">● RUNNING</small>
@@ -353,16 +413,32 @@ body{
       <div class="factory-glow"></div>
       <div class="scene-label">SAUSAGE PRODUCTION LINE</div>
       <div class="scene-note">ผลิตต่อเนื่อง • ตรวจสอบสถานะได้ตลอดเวลา</div>
-      <div class="spark">✦</div>
-      <div class="sausage">
-        <span class="eye"></span>
-        <span class="face"></span>
-        <span class="arm"></span>
-        <span class="shoe"></span>
-        <span class="shoe two"></span>
+      <div class="spark" id="sceneSpark">✦</div>
+      <div class="train-group" id="runningTrain">
+        <div class="sausage item1">
+          <span class="eye"></span>
+          <span class="face"></span>
+          <span class="arm"></span>
+          <span class="shoe"></span>
+          <span class="shoe two"></span>
+        </div>
+        <div class="sausage item2">
+          <span class="eye"></span>
+          <span class="face"></span>
+          <span class="arm"></span>
+          <span class="shoe"></span>
+          <span class="shoe two"></span>
+        </div>
+        <div class="sausage item3">
+          <span class="eye"></span>
+          <span class="face"></span>
+          <span class="arm"></span>
+          <span class="shoe"></span>
+          <span class="shoe two"></span>
+        </div>
       </div>
       <div class="pipe"></div>
-      <div class="belt"></div>
+      <div class="belt" id="conveyorBelt"></div>
       <div class="leg l"></div>
       <div class="leg r"></div>
     </div>
@@ -388,27 +464,41 @@ body{
   </div>
 </div>
 
+<!-- CAP./MIN Normal Input Modal -->
+<div class="modal-backdrop" id="capMinModal" onclick="if(event.target===this) closeCapMinModal()">
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="capMinModalTitle">
+    <h3 class="modal-title" id="capMinModalTitle">จำนวน CAP./MIN ปกติ</h3>
+    <input type="text" inputmode="numeric" pattern="[0-9]*" class="modal-input" id="capMinInput" placeholder="กรอกเฉพาะตัวเลข..." autocomplete="off">
+    <div class="modal-error" id="capMinErrorMsg"></div>
+    <div class="modal-actions">
+      <button type="button" class="modal-btn cancel" onclick="closeCapMinModal()">ยกเลิก</button>
+      <button type="button" class="modal-btn confirm" id="saveCapMinBtn" onclick="saveCapMinToI2()">บันทึก</button>
+    </div>
+  </div>
+</div>
+
 <script>
 const CONFIG = {
-  SHEET_ID: "1j8p-hp8sOWFbmdl5pW7B4yB24VVwcMiwZl5H9rtiP-M",
-  SHEET_NAME: "Dashboard",
-  RANGE: "B5:J5",
-  REFRESH_SECONDS: 10,
+  SHEET_ID: "1j8p-hp8sOWFbmdl5pW7B4yB24VVwcMiwZl5H9rtiP-M", //[cite: 2]
+  SHEET_NAME: "Dashboard", //[cite: 2]
+  RANGE: "B5:J5", //[cite: 2]
+  APPS_SCRIPT_URL: "https://script.google.com/macros/s/AKfycbyNCYa3W9YFASHkWCCWcauP5f0CQN4PzM7AKHpPCNWEHZZfVSs15S5XKFL97rQGFC3Jyw/exec",
+  REFRESH_SECONDS: 10, //[cite: 2]
   FIELDS: [
-    { label: "จำนวนที่ต้องการผลิต", unit: "ชิ้น" },
-    { label: "จำนวนที่ผลิตได้", unit: "ชิ้น" },
-    { label: "CAP. = PC / MIN", unit: "" },
-    { label: "Efficiency", unit: "" }
+    { label: "จำนวนที่ต้องการผลิต", unit: "ชิ้น" }, //[cite: 2]
+    { label: "จำนวนที่ผลิตได้", unit: "ชิ้น" }, //[cite: 2]
+    { label: "CAP. = PC / MIN", unit: "" }, //[cite: 2]
+    { label: "Efficiency", unit: "" } //[cite: 2]
   ],
-  ACCESS_PASSWORD: "RiD FINITY Designed",
+  ACCESS_PASSWORD: "RiD FINITY Designed", //[cite: 2]
   PROTECTED_LINKS: {
     addProduct: {
-      title: "เพิ่มสินค้า",
-      url: "https://docs.google.com/spreadsheets/d/1j8p-hp8sOWFbmdl5pW7B4yB24VVwcMiwZl5H9rtiP-M/edit?gid=563490732#gid=563490732"
+      title: "เพิ่มสินค้า", //[cite: 2]
+      url: "https://docs.google.com/spreadsheets/d/1j8p-hp8sOWFbmdl5pW7B4yB24VVwcMiwZl5H9rtiP-M/edit?gid=563490732#gid=563490732" //[cite: 2]
     },
     history: {
-      title: "History",
-      url: "https://docs.google.com/spreadsheets/d/1j8p-hp8sOWFbmdl5pW7B4yB24VVwcMiwZl5H9rtiP-M/edit?gid=565606583#gid=565606583"
+      title: "History", //[cite: 2]
+      url: "https://docs.google.com/spreadsheets/d/1j8p-hp8sOWFbmdl5pW7B4yB24VVwcMiwZl5H9rtiP-M/edit?gid=565606583#gid=565606583" //[cite: 2]
     }
   }
 };
@@ -453,6 +543,76 @@ document.getElementById("authPasswordInput").addEventListener("keydown", (e) => 
   if (e.key === "Escape") closeAuthModal();
 });
 
+/* CAP./MIN Popup logic */
+function openCapMinModal() {
+  const input = document.getElementById("capMinInput");
+  input.value = "";
+  document.getElementById("capMinErrorMsg").textContent = "";
+  document.getElementById("capMinModal").classList.add("open");
+  setTimeout(() => input.focus(), 50);
+}
+
+function closeCapMinModal() {
+  document.getElementById("capMinModal").classList.remove("open");
+}
+
+const capMinInputEl = document.getElementById("capMinInput");
+capMinInputEl.addEventListener("input", () => {
+  capMinInputEl.value = capMinInputEl.value.replace(/[^0-9]/g, "");
+  document.getElementById("capMinErrorMsg").textContent = "";
+});
+
+capMinInputEl.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") saveCapMinToI2();
+  if (e.key === "Escape") closeCapMinModal();
+});
+
+async function saveCapMinToI2() {
+  const raw = capMinInputEl.value.trim();
+  const errorEl = document.getElementById("capMinErrorMsg");
+  const saveBtn = document.getElementById("saveCapMinBtn");
+
+  if (!/^[0-9]+$/.test(raw)) {
+    errorEl.textContent = "กรุณากรอกเฉพาะตัวเลขเท่านั้น";
+    capMinInputEl.focus();
+    return;
+  }
+
+  const scriptUrl = String(CONFIG.APPS_SCRIPT_URL || "").trim();
+  if (!scriptUrl.startsWith("https://script.google.com/macros/s/")) {
+    errorEl.textContent = "กรุณาใส่ Web App URL ของ Google Apps Script ให้ถูกต้องก่อน";
+    return;
+  }
+
+  saveBtn.disabled = true;
+  saveBtn.textContent = "กำลังบันทึก...";
+
+  try {
+    const sep = scriptUrl.includes("?") ? "&" : "?";
+    const endpoint =
+      scriptUrl +
+      sep +
+      "action=setCapMinI2" +
+      "&value=" +
+      encodeURIComponent(raw) +
+      "&_t=" +
+      Date.now();
+
+    await fetch(endpoint, {
+      method: "GET",
+      mode: "no-cors"
+    });
+
+    closeCapMinModal();
+    setTimeout(loadSheet, 1000);
+  } catch (err) {
+    errorEl.textContent = "บันทึกไม่สำเร็จ: " + (err && err.message ? err.message : "เกิดข้อผิดพลาด");
+  } finally {
+    saveBtn.disabled = false;
+    saveBtn.textContent = "บันทึก";
+  }
+}
+
 function formatDriveImageUrl(url) {
   if (!url) return "";
   const clean = String(url).trim();
@@ -472,42 +632,43 @@ function parseNumeric(val) {
   return isNaN(num) ? 0 : num;
 }
 
-function updateConnectionBadge(statusRaw) {
-  const text = (statusRaw && String(statusRaw).trim()) ? String(statusRaw).trim() : "Offline";
-  const connEl = document.getElementById("connection");
-  const dotEl = document.getElementById("statusDot");
-  const pillEl = document.getElementById("statusPill");
+function applyMachineStateFromJ5(netStatus) {
+  const cleanNet = String(netStatus || "Offline").trim().toLowerCase();
+  const isOnline = cleanNet === "online";
+  const derivedState = isOnline ? "เครื่องจักรกำลังทำงาน" : "เครื่องจักรหยุดทำงาน";
 
-  connEl.textContent = text;
-  const lower = text.toLowerCase();
+  const statusEl = document.getElementById("productionStatus");
+  statusEl.textContent = derivedState;
+  statusEl.style.color = isOnline ? "var(--lime)" : "var(--red)";
 
-  if (lower === "online") {
-    dotEl.style.background = "var(--lime)";
-    dotEl.style.boxShadow = "0 0 12px var(--lime)";
-    connEl.style.color = "var(--lime)";
-    pillEl.style.borderColor = "rgba(167,227,107,.35)";
-  } else if (lower === "offline") {
-    dotEl.style.background = "var(--red)";
-    dotEl.style.boxShadow = "0 0 12px var(--red)";
-    connEl.style.color = "var(--red)";
-    pillEl.style.borderColor = "rgba(255,114,114,.35)";
+  const trainEl = document.getElementById("runningTrain");
+  const beltEl = document.getElementById("conveyorBelt");
+  const sparkEl = document.getElementById("sceneSpark");
+  const badgeEl = document.getElementById("lineRunningBadge");
+
+  if (isOnline) {
+    trainEl.classList.remove("hidden");
+    beltEl.classList.remove("stopped");
+    sparkEl.classList.remove("hidden");
+    badgeEl.textContent = "● RUNNING";
+    badgeEl.style.color = "var(--lime)";
   } else {
-    dotEl.style.background = "var(--orange)";
-    dotEl.style.boxShadow = "0 0 12px var(--orange)";
-    connEl.style.color = "var(--orange)";
-    pillEl.style.borderColor = "var(--line)";
+    trainEl.classList.add("hidden");
+    beltEl.classList.add("stopped");
+    sparkEl.classList.add("hidden");
+    badgeEl.textContent = "● STOPPED";
+    badgeEl.style.color = "var(--red)";
   }
 }
 
 function renderDashboard(row) {
-  const code = row[0] || "—";        // B5
-  const name = row[1] || "—";        // C5
-  const imgUrl = row[2] || "";       // D5
-  const machineState = row[3] || "—";// E5
-  const targetQty = row[4] || "";    // F5
-  const actualQty = row[5] || "";    // G5
-  const capVal = row[6] || "";       // H5
-  const effVal = row[7] || "";       // I5
+  const code = row[0] || "—";          // B5
+  const name = row[1] || "—";          // C5
+  const imgUrl = row[2] || "";         // D5
+  const targetQty = row[4] || "";      // F5
+  const actualQty = row[5] || "";      // G5
+  const capVal = row[6] || "";         // H5
+  const effVal = row[7] || "";         // I5
   const netStatus = row[8] || "Offline"; // J5
 
   document.getElementById("productCode").textContent = code;
@@ -534,17 +695,7 @@ function renderDashboard(row) {
     placeholderEl.style.display = "flex";
   }
 
-  const statusEl = document.getElementById("productionStatus");
-  const cleanState = String(machineState).trim();
-  statusEl.textContent = cleanState || "—";
-
-  if (cleanState === "เครื่องจักรกำลังทำงาน") {
-    statusEl.style.color = "var(--lime)";
-  } else if (cleanState === "เครื่องจักรหยุดทำงาน") {
-    statusEl.style.color = "var(--red)";
-  } else {
-    statusEl.style.color = "var(--text)";
-  }
+  applyMachineStateFromJ5(netStatus);
 
   const targetNum = parseNumeric(targetQty);
   const actualNum = parseNumeric(actualQty);
@@ -558,11 +709,11 @@ function renderDashboard(row) {
   document.getElementById("progressText").textContent = displayPct + "%";
   document.getElementById("progressBar").style.width = barWidth + "%";
 
-  updateConnectionBadge(netStatus);
-
   const metricValues = [targetQty, actualQty, capVal, effVal];
   CONFIG.FIELDS.forEach((field, i) => {
-    document.getElementById("label" + i).textContent = field.label;
+    if (i !== 3) {
+      document.getElementById("label" + i).textContent = field.label;
+    }
     const el = document.getElementById("value" + i);
     const val = metricValues[i];
     if (i === 3) el.classList.add("metric-efficiency");
@@ -599,7 +750,8 @@ function googleSheetJsonpCallback(response) {
 
   while (values.length < 9) values.push("");
   renderDashboard(values);
-  updateConnectionBadge("Online");
+  const j5Status = values[8] || "Offline";
+  applyMachineStateFromJ5(j5Status);
   document.getElementById("updated").textContent =
     "อัปเดตล่าสุด: " + new Date().toLocaleString("th-TH") +
     " | การเชื่อมต่อสำเร็จ";
@@ -632,7 +784,7 @@ function loadSheet() {
     try {
       googleSheetJsonpCallback(response);
     } catch (error) {
-      updateConnectionBadge("Offline");
+      applyMachineStateFromJ5("Offline");
       document.getElementById("updated").textContent =
         "❌ อ่านข้อมูลไม่สำเร็จ: " + error.message;
     } finally {
@@ -656,7 +808,7 @@ function loadSheet() {
 
   script.onerror = () => {
     if (requestId !== sheetRequestId) return;
-    updateConnectionBadge("Offline");
+    applyMachineStateFromJ5("Offline");
     document.getElementById("updated").textContent =
       "❌ ติดต่อ Google Sheets ไม่สำเร็จ: ตรวจสอบ Sheet ID, ชื่อแท็บ และสิทธิ์การเข้าถึง";
     cleanup();
@@ -664,7 +816,7 @@ function loadSheet() {
 
   sheetRequestTimer = setTimeout(() => {
     if (requestId !== sheetRequestId) return;
-    updateConnectionBadge("Offline");
+    applyMachineStateFromJ5("Offline");
     document.getElementById("updated").textContent =
       "❌ หมดเวลารอข้อมูลจาก Google Sheets: ตรวจสอบการแชร์ชีตเป็น Anyone with the link (Viewer)";
     cleanup();
