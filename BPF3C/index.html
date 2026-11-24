@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#101a2b">
-<title>Production Line Dashboard</title>
+<title>BPF3C Line Dashboard</title>
 <style>
 :root{
   --bg:#0b1423;
@@ -39,17 +39,21 @@ body{
 .brand h1{font-size:clamp(20px,3vw,29px);margin:3px 0 0;letter-spacing:.2px}
 .topright{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end}
 .status{
-  display:inline-flex;align-items:center;gap:8px;
-  border:1px solid var(--line);background:#13243a;
-  padding:10px 16px;border-radius:30px;color:#c8d7e8;font-size:12px;font-weight:700;
-  transition:border-color .3s, color .3s, transform .2s, background .2s;
+  display:inline-flex;align-items:center;gap:7px;
+  border:1px solid rgba(66,214,208,.28);background:#13243a;
+  padding:9px 15px;border-radius:30px;color:var(--text);font-size:12px;font-weight:700;
+  transition:border-color .2s, color .2s, transform .2s, background .2s, box-shadow .2s;
   text-decoration:none;cursor:pointer;font-family:inherit;
+  box-shadow:0 4px 14px rgba(0,0,0,.18);
 }
 .status:hover{
   transform:translateY(-1px);
-  background:#192e4a;
+  border-color:var(--cyan);
+  background:linear-gradient(145deg,#1f3a59,#162a42);
+  color:var(--cyan);
+  box-shadow:0 6px 18px rgba(66,214,208,.18);
 }
-.dot{width:8px;height:8px;border-radius:50%;background:var(--lime);box-shadow:0 0 12px var(--lime);transition:all .3s}
+.home-icon{width:15px;height:15px;flex-shrink:0}
 
 /* Action Buttons (เพิ่มสินค้า & History) */
 .nav-btn{
@@ -255,8 +259,8 @@ body{
   padding:24px;
   box-shadow:0 24px 60px rgba(0,0,0,.55);
 }
-.modal-title{font-size:17px;font-weight:800;margin:0 0 6px;color:var(--text);display:flex;align-items:center;gap:8px}
-.modal-sub{font-size:12px;color:var(--muted);margin:0 0 16px;line-height:1.5}
+.modal-title{font-size:17px;font-weight:800;margin:0 0 14px;color:var(--text);display:flex;align-items:center;gap:8px}
+.modal-sub{font-size:12px;color:var(--muted);margin:-8px 0 16px;line-height:1.5}
 .modal-input{
   width:100%;padding:12px 14px;border-radius:12px;
   border:1px solid var(--line);
@@ -314,9 +318,13 @@ body{
       </div>
     </div>
     <div class="topright">
-      <a href="https://ridfinity88.github.io/Machine-Plant2-Dashboard/index.html" class="status" id="statusPill" title="กลับไปหน้าแรก">
-        <span class="dot" id="statusDot"></span>
-        <span id="connection">Offline</span>
+      <a href="https://ridfinity88.github.io/Machine-Plant2-Dashboard/index.html" class="status" id="statusPill" title="หน้าแรก">
+        <svg class="home-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M3 10.5L12 3l9 7.5"></path>
+          <path d="M5 9.5V20a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9.5"></path>
+          <path d="M9 21V13h6v8"></path>
+        </svg>
+        <span id="connection">หน้าแรก</span>
       </a>
       <button type="button" class="nav-btn primary" onclick="requestProtectedLink('addProduct')">＋ เพิ่มสินค้า</button>
       <button type="button" class="nav-btn" onclick="requestProtectedLink('history')">🕒 History</button>
@@ -460,7 +468,6 @@ body{
 <div class="modal-backdrop" id="capMinModal" onclick="if(event.target===this) closeCapMinModal()">
   <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="capMinModalTitle">
     <h3 class="modal-title" id="capMinModalTitle">จำนวน CAP./MIN ปกติ</h3>
-    <p class="modal-sub">กรอกตัวเลขจำนวน CAP./MIN ปกติ เพื่อบันทึกลงช่อง I2</p>
     <input type="text" inputmode="numeric" pattern="[0-9]*" class="modal-input" id="capMinInput" placeholder="กรอกเฉพาะตัวเลข..." autocomplete="off">
     <div class="modal-error" id="capMinErrorMsg"></div>
     <div class="modal-actions">
@@ -580,18 +587,18 @@ async function saveCapMinToI2() {
   saveBtn.textContent = "กำลังบันทึก...";
 
   try {
-    await fetch(CONFIG.APPS_SCRIPT_URL, {
-      method: "POST",
-      mode: "no-cors",
-      headers: { "Content-Type": "text/plain;charset=utf-8" },
-      body: JSON.stringify({
-        action: "setCapMinI2",
-        value: Number(raw)
-      })
+    const queryUrl = new URL(CONFIG.APPS_SCRIPT_URL);
+    queryUrl.searchParams.set("action", "setCapMinI2");
+    queryUrl.searchParams.set("value", raw);
+    queryUrl.searchParams.set("_t", String(Date.now()));
+
+    await fetch(queryUrl.toString(), {
+      method: "GET",
+      mode: "no-cors"
     });
 
     closeCapMinModal();
-    setTimeout(loadSheet, 800);
+    setTimeout(loadSheet, 1000);
   } catch (err) {
     errorEl.textContent = "บันทึกไม่สำเร็จ: " + err.message;
   } finally {
@@ -617,33 +624,6 @@ function parseNumeric(val) {
   if (val == null) return 0;
   const num = parseFloat(String(val).replace(/,/g, "").replace(/%/g, "").trim());
   return isNaN(num) ? 0 : num;
-}
-
-function updateConnectionBadge(statusRaw) {
-  const text = (statusRaw && String(statusRaw).trim()) ? String(statusRaw).trim() : "Offline";
-  const connEl = document.getElementById("connection");
-  const dotEl = document.getElementById("statusDot");
-  const pillEl = document.getElementById("statusPill");
-
-  connEl.textContent = text;
-  const lower = text.toLowerCase();
-
-  if (lower === "online") {
-    dotEl.style.background = "var(--lime)";
-    dotEl.style.boxShadow = "0 0 12px var(--lime)";
-    connEl.style.color = "var(--lime)";
-    pillEl.style.borderColor = "rgba(167,227,107,.35)";
-  } else if (lower === "offline") {
-    dotEl.style.background = "var(--red)";
-    dotEl.style.boxShadow = "0 0 12px var(--red)";
-    connEl.style.color = "var(--red)";
-    pillEl.style.borderColor = "rgba(255,114,114,.35)";
-  } else {
-    dotEl.style.background = "var(--orange)";
-    dotEl.style.boxShadow = "0 0 12px var(--orange)";
-    connEl.style.color = "var(--orange)";
-    pillEl.style.borderColor = "var(--line)";
-  }
 }
 
 function applyMachineStateFromJ5(netStatus) {
@@ -723,8 +703,6 @@ function renderDashboard(row) {
   document.getElementById("progressText").textContent = displayPct + "%";
   document.getElementById("progressBar").style.width = barWidth + "%";
 
-  updateConnectionBadge(netStatus);
-
   const metricValues = [targetQty, actualQty, capVal, effVal];
   CONFIG.FIELDS.forEach((field, i) => {
     if (i !== 3) {
@@ -767,7 +745,6 @@ function googleSheetJsonpCallback(response) {
   while (values.length < 9) values.push("");
   renderDashboard(values);
   const j5Status = values[8] || "Offline";
-  updateConnectionBadge(j5Status);
   applyMachineStateFromJ5(j5Status);
   document.getElementById("updated").textContent =
     "อัปเดตล่าสุด: " + new Date().toLocaleString("th-TH") +
@@ -801,7 +778,6 @@ function loadSheet() {
     try {
       googleSheetJsonpCallback(response);
     } catch (error) {
-      updateConnectionBadge("Offline");
       applyMachineStateFromJ5("Offline");
       document.getElementById("updated").textContent =
         "❌ อ่านข้อมูลไม่สำเร็จ: " + error.message;
@@ -826,7 +802,6 @@ function loadSheet() {
 
   script.onerror = () => {
     if (requestId !== sheetRequestId) return;
-    updateConnectionBadge("Offline");
     applyMachineStateFromJ5("Offline");
     document.getElementById("updated").textContent =
       "❌ ติดต่อ Google Sheets ไม่สำเร็จ: ตรวจสอบ Sheet ID, ชื่อแท็บ และสิทธิ์การเข้าถึง";
@@ -835,7 +810,6 @@ function loadSheet() {
 
   sheetRequestTimer = setTimeout(() => {
     if (requestId !== sheetRequestId) return;
-    updateConnectionBadge("Offline");
     applyMachineStateFromJ5("Offline");
     document.getElementById("updated").textContent =
       "❌ หมดเวลารอข้อมูลจาก Google Sheets: ตรวจสอบการแชร์ชีตเป็น Anyone with the link (Viewer)";
