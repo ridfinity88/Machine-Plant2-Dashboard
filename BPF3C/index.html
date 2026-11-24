@@ -579,7 +579,7 @@ async function saveCapMinToI2() {
   }
 
   const scriptUrl = String(CONFIG.APPS_SCRIPT_URL || "").trim();
-  if (!scriptUrl || scriptUrl === "YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL") {
+  if (!scriptUrl || scriptUrl === "https://script.google.com/macros/s/AKfycbyNCYa3W9YFASHkWCCWcauP5f0CQN4PzM7AKHpPCNWEHZZfVSs15S5XKFL97rQGFC3Jyw/exec") {
     errorEl.textContent = "กรุณาตั้งค่า CONFIG.APPS_SCRIPT_URL เป็น URL ของ Google Apps Script ก่อน";
     return;
   }
