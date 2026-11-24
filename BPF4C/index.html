@@ -466,7 +466,7 @@ body{
 <div class="modal-backdrop" id="capMinModal" onclick="if(event.target===this) closeCapMinModal()">
   <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="capMinModalTitle">
     <h3 class="modal-title" id="capMinModalTitle">จำนวน CAP./MIN ปกติ</h3>
-    <input type="text" inputmode="numeric" pattern="[0-9]*" class="modal-input" id="capMinInput" placeholder="กรอกเฉพาะตัวเลข..." autocomplete="off">
+    <input type="text" inputmode="decimal" class="modal-input" id="capMinInput" placeholder="กรอกตัวเลข (ทศนิยมไม่เกิน 2 ตำแหน่ง)..." autocomplete="off">
     <div class="modal-error" id="capMinErrorMsg"></div>
     <div class="modal-actions">
       <button type="button" class="modal-btn cancel" onclick="closeCapMinModal()">ยกเลิก</button>
@@ -477,26 +477,26 @@ body{
 
 <script>
 const CONFIG = {
-  SHEET_ID: "1He-UPs55buSVSZm9DGgkGsDTSAo-oW0rwcL9W0L7MVo", //[cite: 2]
-  SHEET_NAME: "Dashboard", //[cite: 2]
-  RANGE: "B5:J5", //[cite: 2]
+  SHEET_ID: "1He-UPs55buSVSZm9DGgkGsDTSAo-oW0rwcL9W0L7MVo",
+  SHEET_NAME: "Dashboard",
+  RANGE: "B5:J5",
   APPS_SCRIPT_URL: "https://script.google.com/macros/s/AKfycbxvRE3f-d_xT9AiFRaZJ-mcKj8MN10C-UQjPJmGtYSMtT-vPHxEL2MF6fgWipAK5vwE0w/exec",
-  REFRESH_SECONDS: 10, //[cite: 2]
+  REFRESH_SECONDS: 10,
   FIELDS: [
-    { label: "จำนวนที่ต้องการผลิต", unit: "ชิ้น" }, //[cite: 2]
-    { label: "จำนวนที่ผลิตได้", unit: "ชิ้น" }, //[cite: 2]
-    { label: "CAP. = PC / MIN", unit: "" }, //[cite: 2]
-    { label: "Efficiency", unit: "" } //[cite: 2]
+    { label: "จำนวนที่ต้องการผลิต", unit: "ชิ้น" },
+    { label: "จำนวนที่ผลิตได้", unit: "ชิ้น" },
+    { label: "CAP. = PC / MIN", unit: "" },
+    { label: "Efficiency", unit: "" }
   ],
-  ACCESS_PASSWORD: "RiD FINITY Designed", //[cite: 2]
+  ACCESS_PASSWORD: "RiD FINITY Designed",
   PROTECTED_LINKS: {
     addProduct: {
-      title: "เพิ่มสินค้า", //[cite: 2]
-      url: "https://docs.google.com/spreadsheets/d/1j8p-hp8sOWFbmdl5pW7B4yB24VVwcMiwZl5H9rtiP-M/edit?gid=563490732#gid=563490732" //[cite: 2]
+      title: "เพิ่มสินค้า",
+      url: "https://docs.google.com/spreadsheets/d/1j8p-hp8sOWFbmdl5pW7B4yB24VVwcMiwZl5H9rtiP-M/edit?gid=563490732#gid=563490732"
     },
     history: {
-      title: "History", //[cite: 2]
-      url: "https://docs.google.com/spreadsheets/d/1j8p-hp8sOWFbmdl5pW7B4yB24VVwcMiwZl5H9rtiP-M/edit?gid=565606583#gid=565606583" //[cite: 2]
+      title: "History",
+      url: "https://docs.google.com/spreadsheets/d/1j8p-hp8sOWFbmdl5pW7B4yB24VVwcMiwZl5H9rtiP-M/edit?gid=565606583#gid=565606583"
     }
   }
 };
@@ -542,6 +542,9 @@ document.getElementById("authPasswordInput").addEventListener("keydown", (e) => 
 });
 
 /* CAP./MIN Popup logic */
+const DECIMAL_TWO_PLACES_REGEX = /^(?:\d+(?:\.\d{0,2})?|\.\d{0,2})$/;
+const VALID_NUMBER_TWO_PLACES_REGEX = /^\d+(?:\.\d{1,2})?$/;
+
 function openCapMinModal() {
   const input = document.getElementById("capMinInput");
   input.value = "";
@@ -556,7 +559,26 @@ function closeCapMinModal() {
 
 const capMinInputEl = document.getElementById("capMinInput");
 capMinInputEl.addEventListener("input", () => {
-  capMinInputEl.value = capMinInputEl.value.replace(/[^0-9]/g, "");
+  let cleaned = capMinInputEl.value.replace(/,/g, ".").replace(/[^0-9.]/g, "");
+
+  const firstDotIndex = cleaned.indexOf(".");
+  if (firstDotIndex !== -1) {
+    cleaned =
+      cleaned.slice(0, firstDotIndex + 1) +
+      cleaned.slice(firstDotIndex + 1).replace(/\./g, "");
+  }
+
+  if (firstDotIndex !== -1) {
+    const intPart = cleaned.slice(0, firstDotIndex);
+    const decPart = cleaned.slice(firstDotIndex + 1, firstDotIndex + 3);
+    cleaned = intPart + "." + decPart;
+  }
+
+  if (!DECIMAL_TWO_PLACES_REGEX.test(cleaned)) {
+    cleaned = cleaned.replace(/[^0-9.]/g, "");
+  }
+
+  capMinInputEl.value = cleaned;
   document.getElementById("capMinErrorMsg").textContent = "";
 });
 
@@ -566,15 +588,22 @@ capMinInputEl.addEventListener("keydown", (e) => {
 });
 
 async function saveCapMinToI2() {
-  const raw = capMinInputEl.value.trim();
+  let raw = capMinInputEl.value.trim();
   const errorEl = document.getElementById("capMinErrorMsg");
   const saveBtn = document.getElementById("saveCapMinBtn");
 
-  if (!/^[0-9]+$/.test(raw)) {
-    errorEl.textContent = "กรุณากรอกเฉพาะตัวเลขเท่านั้น";
+  if (raw.startsWith(".")) {
+    raw = "0" + raw;
+    capMinInputEl.value = raw;
+  }
+
+  if (!VALID_NUMBER_TWO_PLACES_REGEX.test(raw) || isNaN(Number(raw))) {
+    errorEl.textContent = "กรุณากรอกตัวเลขที่ถูกต้อง (ทศนิยมไม่เกิน 2 ตำแหน่ง)";
     capMinInputEl.focus();
     return;
   }
+
+  const normalizedValue = String(Number(raw.match(/^\d+(?:\.\d{1,2})?/)[0]));
 
   const scriptUrl = String(CONFIG.APPS_SCRIPT_URL || "").trim();
   if (!scriptUrl.startsWith("https://script.google.com/macros/s/")) {
@@ -592,7 +621,7 @@ async function saveCapMinToI2() {
       sep +
       "action=setCapMinI2" +
       "&value=" +
-      encodeURIComponent(raw) +
+      encodeURIComponent(normalizedValue) +
       "&_t=" +
       Date.now();
 
