@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>System Maintenance - Machine Plant1</title>
+    <style>
+        :root {
+            --bg-color: #0d0d0d;
+            --card-bg: #1a1a1a;
+            --border-color: #333;
+            --text-primary: #ffffff;
+            --text-secondary: #aaaaaa;
+            --accent-orange: #ff9800;
+            --accent-blue: #2196F3;
+        }
+
+        * { 
+            box-sizing: border-box; 
+            margin: 0; 
+            padding: 0;
+        }
+
+        html, body { 
+            background-color: var(--bg-color); 
+            color: var(--text-primary); 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            width: 100vw; 
+            height: 100vh; 
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden; 
+        }
+
+        /* การ์ดแจ้งเตือนตรงกลางหน้าจอ */
+        .maintenance-card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            padding: 40px 30px 50px 30px; /* เพิ่ม padding ด้านล่างเล็กน้อยเพื่อให้สมดุลกับลายน้ำ */
+            border-radius: 12px;
+            width: 90%;
+            max-width: 450px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
+            position: relative;
+        }
+
+        /* ไอคอนเกียร์หมุนสไตล์ IoT */
+        .icon-container {
+            font-size: 3rem;
+            margin-bottom: 20px;
+            color: var(--accent-orange);
+            display: inline-block;
+            animation: spin 4s linear infinite;
+        }
+
+        @keyframes spin {
+            100% { transform: rotate(360deg); }
+        }
+
+        h2 {
+            font-size: 1.4rem;
+            font-weight: 600;
+            margin-bottom: 25px; /* ปรับมาร์จินให้เหมาะสมกับดีไซน์ */
+            letter-spacing: 0.5px;
+        }
+
+        /* ปุ่มกดกลับหน้าหลักภายนอกโฟลเดอร์ (../index.html) */
+        .btn-home {
+            display: inline-block;
+            width: 100%;
+            padding: 14px;
+            background-color: var(--accent-blue);
+            color: #fff;
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 0.95rem;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+            border: 1px solid transparent;
+        }
+
+        .btn-home:hover {
+            background-color: #1976D2;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(33, 150, 243, 0.3);
+        }
+
+        .btn-home:active {
+            transform: translateY(0);
+        }
+
+        /* ลายน้ำด้านล่าง จัดให้อยู่ตรงกลางการ์ด */
+        .watermark { 
+            position: absolute; 
+            bottom: 15px; 
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.65rem; 
+            color: rgba(255, 255, 255, 0.15); 
+            letter-spacing: 1px;
+            white-space: nowrap;
+        }
+    </style>
+</head>
+<body>
+
+<div class="maintenance-card">
+    <div class="icon-container">⚙️</div>
+    <h2>อยู่ระหว่าง Update ระบบ IOT</h2>
+    
+    <!-- ลิงก์ย้อนกลับไปที่ไฟล์ index.html นอกโฟลเดอร์ปัจจุบัน -->
+    <a href="../index.html" class="btn-home">กลับไปหน้าแรก</a>
+    
+    <div class="watermark">RiDFinity Design</div>
+</div>
+
+</body>
+</html>
