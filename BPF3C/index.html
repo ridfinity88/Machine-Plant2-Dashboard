@@ -578,8 +578,9 @@ async function saveCapMinToI2() {
     return;
   }
 
-  if (!CONFIG.APPS_SCRIPT_URL || CONFIG.APPS_SCRIPT_URL === "https://script.google.com/macros/s/AKfycbyNCYa3W9YFASHkWCCWcauP5f0CQN4PzM7AKHpPCNWEHZZfVSs15S5XKFL97rQGFC3Jyw/exec") {
-    errorEl.textContent = "ยังไม่ได้ตั้งค่า URL ของ Google Apps Script";
+  const scriptUrl = String(CONFIG.APPS_SCRIPT_URL || "").trim();
+  if (!scriptUrl || scriptUrl === "YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL") {
+    errorEl.textContent = "กรุณาตั้งค่า CONFIG.APPS_SCRIPT_URL เป็น URL ของ Google Apps Script ก่อน";
     return;
   }
 
@@ -587,7 +588,7 @@ async function saveCapMinToI2() {
   saveBtn.textContent = "กำลังบันทึก...";
 
   try {
-    const queryUrl = new URL(CONFIG.APPS_SCRIPT_URL);
+    const queryUrl = new URL(scriptUrl);
     queryUrl.searchParams.set("action", "setCapMinI2");
     queryUrl.searchParams.set("value", raw);
     queryUrl.searchParams.set("_t", String(Date.now()));
@@ -600,7 +601,7 @@ async function saveCapMinToI2() {
     closeCapMinModal();
     setTimeout(loadSheet, 1000);
   } catch (err) {
-    errorEl.textContent = "บันทึกไม่สำเร็จ: " + err.message;
+    errorEl.textContent = "บันทึกไม่สำเร็จ: " + (err && err.message ? err.message : "URL ไม่ถูกต้อง");
   } finally {
     saveBtn.disabled = false;
     saveBtn.textContent = "บันทึก";
