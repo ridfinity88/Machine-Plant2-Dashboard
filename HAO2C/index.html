@@ -176,6 +176,19 @@
       z-index: 2;
     }
 
+    /* กล่องข้อมูลที่เป็นปุ่มกด */
+    .tile.data-tile {
+      cursor: pointer;
+      user-select: none;
+    }
+    .tile.data-tile:active {
+      transform: scale(0.985);
+    }
+    .tile.data-tile:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 1px;
+    }
+
     /* กล่องด้านซ้ายของแถวที่ 2-11 (Power Meter1 - Power Meter10): สีเด่นชัดและข้อความอยู่ตรงกลาง */
     .tile.meter-label {
       justify-content: center;
@@ -319,6 +332,96 @@
     }
     .page-placeholder strong { color: var(--text); font-size: 18px; }
 
+    /* ===================== POPUP กราฟเกือบเต็มหน้าจอ ===================== */
+    .chart-modal-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2.5vh 2.5vw;
+      background: rgba(4, 9, 18, .78);
+      backdrop-filter: blur(6px);
+    }
+    .chart-modal-dialog {
+      width: 95vw;
+      height: 95vh;
+      max-width: 1800px;
+      display: flex;
+      flex-direction: column;
+      padding: 18px 22px 20px;
+      border: 1px solid rgba(57, 183, 255, .32);
+      border-radius: 16px;
+      background: linear-gradient(160deg, rgba(20, 34, 56, .99), rgba(10, 18, 31, .99));
+      box-shadow: 0 24px 60px rgba(0, 0, 0, .65);
+    }
+    .chart-modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--line);
+      flex: 0 0 auto;
+    }
+    .chart-modal-title-wrap {
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+      flex-wrap: wrap;
+      min-width: 0;
+    }
+    .chart-modal-title {
+      margin: 0;
+      font-size: clamp(18px, 1.8vw, 24px);
+      font-weight: 800;
+      color: var(--text);
+    }
+    .chart-modal-meta {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--accent);
+    }
+    .chart-close-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      height: 38px;
+      padding: 0 16px;
+      border: 1px solid rgba(248, 113, 113, .45);
+      border-radius: 10px;
+      background: rgba(127, 29, 29, .45);
+      color: #fecaca;
+      font: inherit;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: .15s ease;
+      flex: 0 0 auto;
+    }
+    .chart-close-btn:hover {
+      background: rgba(185, 28, 28, .75);
+      border-color: #fca5a5;
+      color: #fff;
+    }
+    .chart-canvas-wrap {
+      position: relative;
+      flex: 1;
+      min-height: 0;
+      margin-top: 14px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: rgba(7, 14, 26, .75);
+      overflow: hidden;
+    }
+    #lineChartCanvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
     @media (max-width: 1100px) {
       body {
         height: auto;
@@ -337,6 +440,11 @@
       }
       .tile { min-height: 76px; padding: 8px 10px; }
       .tile.featured { min-height: 94px; }
+      .chart-modal-dialog {
+        width: 96vw;
+        height: 92vh;
+        padding: 14px;
+      }
     }
 
     @media (max-width: 650px) {
@@ -410,6 +518,24 @@
       </div>
     </section>
   </main>
+
+  <!-- POPUP แสดงกราฟเส้นเกือบเต็มหน้าจอ -->
+  <div class="chart-modal-backdrop" id="chartModal" hidden role="dialog" aria-modal="true" aria-labelledby="chartModalTitle">
+    <div class="chart-modal-dialog">
+      <div class="chart-modal-header">
+        <div class="chart-modal-title-wrap">
+          <h2 class="chart-modal-title" id="chartModalTitle">กราฟแสดงข้อมูล</h2>
+          <span class="chart-modal-meta" id="chartModalMeta"></span>
+        </div>
+        <button class="chart-close-btn" type="button" id="closeChartModal" aria-label="ปิดหน้าต่าง">
+          ✕ ปิด
+        </button>
+      </div>
+      <div class="chart-canvas-wrap">
+        <canvas id="lineChartCanvas"></canvas>
+      </div>
+    </div>
+  </div>
 
   <script>
     // ===================== ตั้งค่าการดึงข้อมูล =====================
@@ -571,6 +697,10 @@
     const grid = document.getElementById("dashboardGrid");
     const valueElements = [];
 
+    // เก็บข้อมูลย้อนหลัง 60 นาทีต่อกล่อง (สำหรับเตรียมใช้งานร่วมกับกราฟ)
+    const boxHistoryMap = new Map();
+    let activePopupBoxIndex = null;
+
     function formatCellValue(cellValue) {
       if (cellValue === null || cellValue === undefined) return "—";
       const text = String(cellValue).trim();
@@ -578,7 +708,6 @@
     }
 
     function getOtherRowColorClass(colInRow) {
-      // colInRow คือลำดับกล่องข้อมูล (1 ถึง 10) ในแต่ละแถวที่ 2-11
       if (colInRow >= 4 && colInRow <= 6) return " col-group-456";
       if (colInRow >= 7 && colInRow <= 9) return " col-group-789";
       if (colInRow === 10) return " col-group-10";
@@ -598,7 +727,7 @@
     }
 
     function createDataTile(boxIndex) {
-      const [, cfg] = boxEntries[boxIndex];
+      const [boxKey, cfg] = boxEntries[boxIndex];
       const labelA = cfg[0] ?? "";
       const labelB = cfg[1] ?? "";
 
@@ -609,7 +738,11 @@
         : getOtherRowColorClass(colInRow);
 
       const tile = document.createElement("article");
-      tile.className = "tile" + extraClass;
+      tile.className = "tile data-tile" + extraClass;
+      tile.setAttribute("role", "button");
+      tile.setAttribute("tabindex", "0");
+      tile.dataset.boxIndex = String(boxIndex);
+      tile.title = `คลิกเพื่อดูกราฟ ${labelA || boxKey}`;
 
       const meta = document.createElement("div");
       meta.className = "tile-meta";
@@ -629,6 +762,15 @@
       meta.append(a, b);
       tile.append(meta, value);
       valueElements[boxIndex] = value;
+
+      tile.addEventListener("click", () => openChartPopup(boxIndex));
+      tile.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          openChartPopup(boxIndex);
+        }
+      });
+
       return tile;
     }
 
@@ -674,17 +816,25 @@
       };
     }
 
+    function recordHistoryValue(boxKey, textVal) {
+      const num = parseFloat(String(textVal).replace(/,/g, ""));
+      const series = boxHistoryMap.get(boxKey) || [];
+      if (!Number.isNaN(num)) {
+        series.push(num);
+        if (series.length > 60) series.shift();
+        boxHistoryMap.set(boxKey, series);
+      }
+    }
+
     function initTiles() {
       featuredGrid.innerHTML = "";
       grid.innerHTML = "";
       valueElements.length = 0;
 
-      // แถวที่ 1: กล่อง 1 - 6
       for (let i = 0; i < Math.min(FIRST_ROW_COUNT, TOTAL_TILES); i++) {
         featuredGrid.appendChild(createDataTile(i));
       }
 
-      // แถวที่ 2 - 11: แทรก Power Meter1 - Power Meter10 ด้านซ้ายของแต่ละแถว
       let dataIdx = FIRST_ROW_COUNT;
       for (let r = 0; r < OTHER_ROWS; r++) {
         grid.appendChild(createMeterLabelTile(r + 1));
@@ -700,13 +850,19 @@
 
     function applyValuesByCellMap(cellMap) {
       for (let i = 0; i < TOTAL_TILES; i++) {
-        const [, cfg] = boxEntries[i];
+        const [boxKey, cfg] = boxEntries[i];
         const cellKey = String(cfg[2] || "").trim().toUpperCase();
         const rawVal = cellKey ? cellMap[cellKey] : "";
         const nextText = formatCellValue(rawVal);
         if (valueElements[i] && valueElements[i].textContent !== nextText) {
           valueElements[i].textContent = nextText;
         }
+        if (nextText !== "—") {
+          recordHistoryValue(boxKey, nextText);
+        }
+      }
+      if (activePopupBoxIndex !== null) {
+        renderLineChart(activePopupBoxIndex);
       }
     }
 
@@ -804,6 +960,219 @@
         console.error("โหลดข้อมูล Google Sheets ไม่สำเร็จ:", error);
       }
     }
+
+    // ===================== POPUP และกราฟเส้น (แกน X = เวลา นาที 1-60, แกน Y = ค่า) =====================
+    const chartModal = document.getElementById("chartModal");
+    const chartModalTitle = document.getElementById("chartModalTitle");
+    const chartModalMeta = document.getElementById("chartModalMeta");
+    const closeChartModalBtn = document.getElementById("closeChartModal");
+    const lineChartCanvas = document.getElementById("lineChartCanvas");
+
+    function getSeriesForBox(boxIndex) {
+      const [boxKey] = boxEntries[boxIndex];
+      const recorded = boxHistoryMap.get(boxKey) || [];
+      const currentNum = parseFloat(String(valueElements[boxIndex]?.textContent || "").replace(/,/g, ""));
+
+      // สร้างชุดข้อมูล 60 นาที (นาทีที่ 1 ถึง 60) โดยยังไม่ได้ล็อกสเกลแกนค่า
+      const points = [];
+      for (let min = 1; min <= 60; min++) {
+        const idxFromEnd = recorded.length - (61 - min);
+        if (idxFromEnd >= 0 && idxFromEnd < recorded.length) {
+          points.push(recorded[idxFromEnd]);
+        } else if (min === 60 && !Number.isNaN(currentNum)) {
+          points.push(currentNum);
+        } else {
+          points.push(null);
+        }
+      }
+      return points;
+    }
+
+    function renderLineChart(boxIndex) {
+      const canvas = lineChartCanvas;
+      const rect = canvas.getBoundingClientRect();
+      if (rect.width === 0 || rect.height === 0) return;
+
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = Math.round(rect.width * dpr);
+      canvas.height = Math.round(rect.height * dpr);
+
+      const ctx = canvas.getContext("2d");
+      ctx.save();
+      ctx.scale(dpr, dpr);
+
+      const width = rect.width;
+      const height = rect.height;
+
+      const padLeft = 82;
+      const padRight = 32;
+      const padTop = 32;
+      const padBottom = 64;
+
+      const plotLeft = padLeft;
+      const plotRight = width - padRight;
+      const plotTop = padTop;
+      const plotBottom = height - padBottom;
+      const plotWidth = Math.max(10, plotRight - plotLeft);
+      const plotHeight = Math.max(10, plotBottom - plotTop);
+
+      ctx.clearRect(0, 0, width, height);
+
+      const points = getSeriesForBox(boxIndex);
+      const validNums = points.filter(v => typeof v === "number" && !Number.isNaN(v));
+
+      // ช่วงค่าแกน Y เบื้องต้นแบบยืดหยุ่น (ยังไม่ล็อกสเกลตายตัว)
+      let minVal = validNums.length ? Math.min(...validNums) : 0;
+      let maxVal = validNums.length ? Math.max(...validNums) : 100;
+      if (minVal === maxVal) {
+        minVal = minVal - 10;
+        maxVal = maxVal + 10;
+      }
+
+      // แกน X: เวลา (นาทีที่ 1 ถึง 60) จากซ้ายไปขวา
+      ctx.font = "600 12px Inter, 'Noto Sans Thai', sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "top";
+
+      for (let minute = 1; minute <= 60; minute++) {
+        const xRatio = (minute - 1) / 59; // นาทีที่ 1 อยู่ซ้ายสุด, นาทีที่ 60 อยู่ขวาสุด
+        const x = plotLeft + xRatio * plotWidth;
+        const isMajor = minute === 1 || minute % 5 === 0 || minute === 60;
+
+        ctx.strokeStyle = isMajor
+          ? "rgba(148, 171, 202, 0.22)"
+          : "rgba(148, 171, 202, 0.06)";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(x, plotTop);
+        ctx.lineTo(x, plotBottom);
+        ctx.stroke();
+
+        if (isMajor) {
+          ctx.fillStyle = "#cbd5e1";
+          ctx.fillText(`${minute}`, x, plotBottom + 10);
+        }
+      }
+
+      // แกน Y: ค่า (จากล่างขึ้นบน)
+      const yTicks = 8;
+      ctx.textAlign = "right";
+      ctx.textBaseline = "middle";
+      for (let t = 0; t <= yTicks; t++) {
+        const ratio = t / yTicks; // 0 อยู่ล่างสุด (plotBottom), 1 อยู่บนสุด (plotTop)
+        const y = plotBottom - ratio * plotHeight;
+        const tickVal = minVal + ratio * (maxVal - minVal);
+
+        ctx.strokeStyle = "rgba(148, 171, 202, 0.14)";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(plotLeft, y);
+        ctx.lineTo(plotRight, y);
+        ctx.stroke();
+
+        ctx.fillStyle = "#91a4bd";
+        const labelText = Number.isInteger(tickVal) ? String(tickVal) : tickVal.toFixed(1);
+        ctx.fillText(labelText, plotLeft - 12, y);
+      }
+
+      // เส้นแกนหลัก X และ Y
+      ctx.strokeStyle = "rgba(226, 232, 240, 0.45)";
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(plotLeft, plotTop);
+      ctx.lineTo(plotLeft, plotBottom);
+      ctx.lineTo(plotRight, plotBottom);
+      ctx.stroke();
+
+      // ชื่อแกน X (เวลา นาทีที่ 1 ถึง 60) และชื่อแกน Y (ค่า)
+      ctx.fillStyle = "#39b7ff";
+      ctx.font = "700 13px Inter, 'Noto Sans Thai', sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "bottom";
+      ctx.fillText("เวลา (นาทีที่ 1 - 60)", plotLeft + plotWidth / 2, height - 6);
+
+      ctx.save();
+      ctx.translate(18, plotTop + plotHeight / 2);
+      ctx.rotate(-Math.PI / 2);
+      ctx.textAlign = "center";
+      ctx.textBaseline = "top";
+      ctx.fillText("ค่า (Value)", 0, 0);
+      ctx.restore();
+
+      // วาดกราฟเส้น (แกน X = เวลา นาทีที่ 1-60, แกน Y = ค่า)
+      const coords = [];
+      for (let i = 0; i < points.length; i++) {
+        const val = points[i];
+        if (typeof val !== "number" || Number.isNaN(val)) continue;
+        const minute = i + 1;
+        const xRatio = (minute - 1) / 59;
+        const yRatio = (val - minVal) / (maxVal - minVal);
+        const x = plotLeft + xRatio * plotWidth;
+        const y = plotBottom - Math.min(1, Math.max(0, yRatio)) * plotHeight;
+        coords.push({ x, y, val, minute });
+      }
+
+      if (coords.length > 0) {
+        ctx.strokeStyle = "#39b7ff";
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        coords.forEach((pt, idx) => {
+          if (idx === 0) ctx.moveTo(pt.x, pt.y);
+          else ctx.lineTo(pt.x, pt.y);
+        });
+        ctx.stroke();
+
+        ctx.fillStyle = "#fbbf24";
+        for (const pt of coords) {
+          ctx.beginPath();
+          ctx.arc(pt.x, pt.y, 4, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      } else {
+        ctx.fillStyle = "#91a4bd";
+        ctx.font = "600 15px Inter, 'Noto Sans Thai', sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText("รอข้อมูลจาก Google Sheet เพื่อพล็อตกราฟเส้น", plotLeft + plotWidth / 2, plotTop + plotHeight / 2);
+      }
+
+      ctx.restore();
+    }
+
+    function openChartPopup(boxIndex) {
+      const [boxKey, cfg] = boxEntries[boxIndex];
+      const nameA = cfg[0] || boxKey;
+      const unitB = cfg[1] ? ` (${cfg[1]})` : "";
+      const cellRef = cfg[2] || "";
+      const currentVal = valueElements[boxIndex]?.textContent || "—";
+
+      activePopupBoxIndex = boxIndex;
+      chartModalTitle.textContent = `${nameA}${unitB}`;
+      chartModalMeta.textContent = `${boxKey} • เซลล์ ${cellRef} • ค่าปัจจุบัน: ${currentVal}`;
+      chartModal.hidden = false;
+
+      requestAnimationFrame(() => renderLineChart(boxIndex));
+    }
+
+    function closeChartPopup() {
+      activePopupBoxIndex = null;
+      chartModal.hidden = true;
+    }
+
+    closeChartModalBtn.addEventListener("click", closeChartPopup);
+    chartModal.addEventListener("click", (e) => {
+      if (e.target === chartModal) closeChartPopup();
+    });
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && !chartModal.hidden) {
+        closeChartPopup();
+      }
+    });
+    window.addEventListener("resize", () => {
+      if (!chartModal.hidden && activePopupBoxIndex !== null) {
+        renderLineChart(activePopupBoxIndex);
+      }
+    });
 
     document.querySelectorAll(".tab").forEach(button => {
       button.addEventListener("click", () => {
