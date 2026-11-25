@@ -39,7 +39,6 @@
       font-family: Inter, "Segoe UI", Tahoma, Arial, "Noto Sans Thai", sans-serif;
     }
 
-    /* ส่วนหัว */
     .topbar {
       width: 100%;
       max-width: 1840px;
@@ -79,7 +78,6 @@
       text-transform: uppercase;
     }
 
-    /* กลุ่มปุ่มด้านขวาในส่วนหัว (หน้าแรก + หน้า 1 / หน้า 2) */
     .header-actions {
       display: flex;
       align-items: center;
@@ -118,7 +116,6 @@
       box-shadow: 0 2px 8px rgba(0, 124, 210, .22);
     }
 
-    /* พื้นที่เนื้อหาหลัก (จัดเต็มความสูงหน้าจอโดยไม่เลื่อนเมาส์) */
     main {
       width: 100%;
       max-width: 1840px;
@@ -136,7 +133,6 @@
       gap: 8px;
     }
 
-    /* แถวที่ 1: 6 กล่อง */
     .featured-grid {
       display: grid;
       grid-template-columns: repeat(6, minmax(0, 1fr));
@@ -144,7 +140,6 @@
       min-height: 0;
     }
 
-    /* แถวที่ 2-11: 10 แถว x 10 กล่อง */
     .dashboard-grid {
       display: grid;
       grid-template-columns: repeat(10, minmax(0, 1fr));
@@ -180,7 +175,6 @@
       z-index: 2;
     }
 
-    /* สไตล์เฉพาะแถวที่ 1 (ขอบสีทองเด่นกว่าแถวอื่น) */
     .tile.featured {
       padding: 7px 11px;
       border: 1.5px solid rgba(245, 158, 11, 0.7);
@@ -235,10 +229,7 @@
       color: #dbeaff;
     }
 
-    #page2 {
-      flex: 1;
-      display: flex;
-    }
+    #page2 { flex: 1; display: flex; }
     .page-placeholder {
       flex: 1;
       display: grid; place-items: center; padding: 30px;
@@ -248,7 +239,6 @@
     }
     .page-placeholder strong { color: var(--text); font-size: 18px; }
 
-    /* จอแท็บเล็ต / โน้ตบุ๊กขนาดเล็ก (เปิดการเลื่อนอัตโนมัติเพื่อไม่ให้กล่องเล็กเกินไป) */
     @media (max-width: 1100px) {
       body {
         height: auto;
@@ -269,7 +259,6 @@
       .tile.featured { min-height: 94px; }
     }
 
-    /* จอมือถือ */
     @media (max-width: 650px) {
       body { padding: 0 10px 24px; }
       .topbar {
@@ -328,9 +317,7 @@
 
   <main>
     <section id="page1">
-      <!-- แถวที่ 1 (6 กล่อง) -->
       <div class="featured-grid" id="featuredGrid"></div>
-      <!-- แถวที่ 2 - 11 (10 แถว x 10 กล่อง) -->
       <div class="dashboard-grid" id="dashboardGrid"></div>
     </section>
 
@@ -345,18 +332,18 @@
   </main>
 
   <script>
-    // ===================== ตั้งค่า Google Sheets =====================
+    // ===================== ตั้งค่าการดึงข้อมูล =====================
+    // หากใช้ Google Apps Script ให้วางลิงก์ Web App ลงใน WEB_APP_URL
+    const WEB_APP_URL = "";
     const SPREADSHEET_ID = "https://script.google.com/macros/s/AKfycbyA33s6-UkYvU4r-CRH87L8NUqr3VWP0WfAFeeJx9-JZSosdxT5cB7cTYelhxVh2hZC-w/exec";
     const SHEET_NAME = "Dashboard";
-    const DATA_RANGE = "B7:EC7"; // 106 คอลัมน์ (B ถึง EC)
+    const DATA_RANGE = "B7:EC7";
 
-    // แถวที่ 1 = 6 กล่อง | แถวที่ 2-11 = 10 แถว x 10 กล่อง
     const FIRST_ROW_COUNT = 6;
     const OTHER_ROWS = 10;
     const OTHER_COLUMNS = 10;
     const TOTAL_TILES = FIRST_ROW_COUNT + (OTHER_ROWS * OTHER_COLUMNS); // 106 กล่อง
 
-    // แก้ชื่อ A และ B ได้จากรายการนี้
     const tileLabels = Array.from({ length: TOTAL_TILES }, (_, i) => ({
       a: `A${i + 1}`,
       b: `B${i + 1}`
@@ -407,12 +394,21 @@
     }
 
     async function loadSheetData() {
-      if (!SPREADSHEET_ID || SPREADSHEET_ID === "ใส่_SPREADSHEET_ID_ที่นี่") {
-        createTiles([]);
-        return;
-      }
-
       try {
+        if (WEB_APP_URL) {
+          const response = await fetch(WEB_APP_URL);
+          if (!response.ok) throw new Error("Apps Script response error");
+          const data = await response.json();
+          if (!data.ok || !Array.isArray(data.values)) throw new Error("Invalid payload");
+          createTiles(data.values.slice(0, TOTAL_TILES));
+          return;
+        }
+
+        if (!SPREADSHEET_ID || SPREADSHEET_ID === "ใส่_SPREADSHEET_ID_ที่นี่") {
+          createTiles([]);
+          return;
+        }
+
         const range = encodeURIComponent(`${SHEET_NAME}!${DATA_RANGE}`);
         const url = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?range=${range}&tqx=out:json`;
         const response = await fetch(url);
