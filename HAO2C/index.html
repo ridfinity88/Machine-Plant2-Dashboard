@@ -333,11 +333,17 @@
 
   <script>
     // ===================== ตั้งค่าการดึงข้อมูล =====================
-    // หากใช้ Google Apps Script ให้วางลิงก์ Web App ลงใน WEB_APP_URL
+    // 1. วางลิงก์ Web App จาก Google Apps Script (ลงท้ายด้วย /exec)
+    //    หากเว้นว่าง "" ระบบจะดึงตรงผ่าน SPREADSHEET_ID ด้านล่างแทน
     const WEB_APP_URL = "";
-    const SPREADSHEET_ID = "https://script.google.com/macros/s/AKfycbyA33s6-UkYvU4r-CRH87L8NUqr3VWP0WfAFeeJx9-JZSosdxT5cB7cTYelhxVh2hZC-w/exec";
+
+    // 2. หรือใช้ SPREADSHEET_ID (ต้องแชร์ไฟล์เป็น "ใครก็ตามที่มีลิงก์ดูได้")
+    const SPREADSHEET_ID = "1lhYka2bJqX942P1YM7NswWeHCLRMvhb2LwO9lmZMfVM";
     const SHEET_NAME = "Dashboard";
     const DATA_RANGE = "B7:EC7";
+
+    // อัปเดตข้อมูลอัตโนมัติทุก 30 วินาที
+    const REFRESH_INTERVAL_MS = 30000;
 
     const FIRST_ROW_COUNT = 6;
     const OTHER_ROWS = 10;
@@ -351,39 +357,42 @@
 
     const featuredGrid = document.getElementById("featuredGrid");
     const grid = document.getElementById("dashboardGrid");
+    const valueElements = [];
 
-    function buildTileElement(index, cellValue, isFeatured) {
-      const tile = document.createElement("article");
-      tile.className = "tile" + (isFeatured ? " featured" : "");
-
-      const meta = document.createElement("div");
-      meta.className = "tile-meta";
-
-      const a = document.createElement("span");
-      a.className = "a-label";
-      a.textContent = tileLabels[index].a;
-
-      const b = document.createElement("span");
-      b.className = "b-label";
-      b.textContent = tileLabels[index].b;
-
-      const value = document.createElement("div");
-      value.className = "tile-value";
-      value.textContent = cellValue === null || cellValue === undefined || cellValue === ""
-        ? "—" : String(cellValue);
-
-      meta.append(a, b);
-      tile.append(meta, value);
-      return tile;
+    function formatCellValue(cellValue) {
+      if (cellValue === null || cellValue === undefined) return "—";
+      const text = String(cellValue).trim();
+      return text === "" ? "—" : text;
     }
 
-    function createTiles(values = []) {
+    function initTiles() {
       featuredGrid.innerHTML = "";
       grid.innerHTML = "";
+      valueElements.length = 0;
 
       for (let i = 0; i < TOTAL_TILES; i++) {
         const isFeatured = i < FIRST_ROW_COUNT;
-        const tile = buildTileElement(i, values[i], isFeatured);
+        const tile = document.createElement("article");
+        tile.className = "tile" + (isFeatured ? " featured" : "");
+
+        const meta = document.createElement("div");
+        meta.className = "tile-meta";
+
+        const a = document.createElement("span");
+        a.className = "a-label";
+        a.textContent = tileLabels[i].a;
+
+        const b = document.createElement("span");
+        b.className = "b-label";
+        b.textContent = tileLabels[i].b;
+
+        const value = document.createElement("div");
+        value.className = "tile-value";
+        value.textContent = "—";
+
+        meta.append(a, b);
+        tile.append(meta, value);
+        valueElements.push(value);
 
         if (isFeatured) {
           featuredGrid.appendChild(tile);
@@ -393,37 +402,82 @@
       }
     }
 
+    function updateTiles(values = []) {
+      for (let i = 0; i < TOTAL_TILES; i++) {
+        const nextText = formatCellValue(values[i]);
+        if (valueElements[i] && valueElements[i].textContent !== nextText) {
+          valueElements[i].textContent = nextText;
+        }
+      }
+    }
+
+    function fetchViaJsonp(baseUrl) {
+      return new Promise((resolve, reject) => {
+        const cbName = "__hao2cSheetCb_" + Date.now() + "_" + Math.floor(Math.random() * 10000);
+        const script = document.createElement("script");
+        const separator = baseUrl.includes("?") ? "&" : "?";
+        const timeout = setTimeout(() => {
+          cleanup();
+          reject(new Error("Apps Script JSONP timeout"));
+        }, 12000);
+
+        function cleanup() {
+          clearTimeout(timeout);
+          delete window[cbName];
+          if (script.parentNode) script.parentNode.removeChild(script);
+        }
+
+        window[cbName] = (data) => {
+          cleanup();
+          resolve(data);
+        };
+
+        script.onerror = () => {
+          cleanup();
+          reject(new Error("Apps Script load error"));
+        };
+
+        script.src = `${baseUrl}${separator}callback=${cbName}&_t=${Date.now()}`;
+        document.body.appendChild(script);
+      });
+    }
+
     async function loadSheetData() {
       try {
-        if (WEB_APP_URL) {
-          const response = await fetch(WEB_APP_URL);
-          if (!response.ok) throw new Error("Apps Script response error");
-          const data = await response.json();
-          if (!data.ok || !Array.isArray(data.values)) throw new Error("Invalid payload");
-          createTiles(data.values.slice(0, TOTAL_TILES));
+        const cleanWebApp = (WEB_APP_URL || "").trim();
+        if (cleanWebApp && !cleanWebApp.includes("ใส่_")) {
+          const data = await fetchViaJsonp(cleanWebApp);
+          if (!data || !data.ok || !Array.isArray(data.values)) {
+            throw new Error("Invalid Apps Script response");
+          }
+          updateTiles(data.values.slice(0, TOTAL_TILES));
           return;
         }
 
-        if (!SPREADSHEET_ID || SPREADSHEET_ID === "ใส่_SPREADSHEET_ID_ที่นี่") {
-          createTiles([]);
+        const cleanSheetId = (SPREADSHEET_ID || "").trim();
+        if (!cleanSheetId || cleanSheetId.includes("ใส่_SPREADSHEET_ID_ที่นี่")) {
           return;
         }
 
         const range = encodeURIComponent(`${SHEET_NAME}!${DATA_RANGE}`);
-        const url = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?range=${range}&tqx=out:json`;
-        const response = await fetch(url);
+        const url = `https://docs.google.com/spreadsheets/d/${cleanSheetId}/gviz/tq?range=${range}&tqx=out:json&_t=${Date.now()}`;
+        const response = await fetch(url, { cache: "no-store" });
         if (!response.ok) throw new Error("Google Sheets response error");
 
         const raw = await response.text();
-        const jsonText = raw.substring(raw.indexOf("{"), raw.lastIndexOf("}") + 1);
-        const result = JSON.parse(jsonText);
-        const row = result.table.rows[0];
-        const values = row ? row.c.map(cell => cell ? cell.v : "") : [];
+        const start = raw.indexOf("{");
+        const end = raw.lastIndexOf("}");
+        if (start === -1 || end === -1) throw new Error("Invalid gviz JSON");
 
-        createTiles(values.slice(0, TOTAL_TILES));
+        const result = JSON.parse(raw.substring(start, end + 1));
+        const row = result.table && result.table.rows && result.table.rows[0];
+        const values = row && Array.isArray(row.c)
+          ? row.c.map(cell => (cell && cell.v !== null && cell.v !== undefined) ? (cell.f ?? cell.v) : "")
+          : [];
+
+        updateTiles(values.slice(0, TOTAL_TILES));
       } catch (error) {
-        console.error(error);
-        createTiles([]);
+        console.error("โหลดข้อมูล Google Sheets ไม่สำเร็จ:", error);
       }
     }
 
@@ -438,8 +492,9 @@
       });
     });
 
-    createTiles([]);
+    initTiles();
     loadSheetData();
+    setInterval(loadSheetData, REFRESH_INTERVAL_MS);
   </script>
 </body>
 </html>
