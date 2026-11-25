@@ -140,9 +140,10 @@
       min-height: 0;
     }
 
+    /* 11 คอลัมน์ต่อแถว: คอลัมน์แรกคือ Power Meter1..10 และ 10 คอลัมน์ถัดไปคือกล่องข้อมูล */
     .dashboard-grid {
       display: grid;
-      grid-template-columns: repeat(10, minmax(0, 1fr));
+      grid-template-columns: 1.15fr repeat(10, minmax(0, 1fr));
       grid-template-rows: repeat(10, minmax(0, 1fr));
       gap: 6px;
       min-height: 0;
@@ -173,6 +174,37 @@
       transform: translateY(-1px);
       border-color: rgba(57,183,255,.45);
       z-index: 2;
+    }
+
+    /* กล่องด้านซ้ายของแถวที่ 2-11 (Power Meter1 - Power Meter10): สีเด่นชัดและข้อความอยู่ตรงกลาง */
+    .tile.meter-label {
+      justify-content: center;
+      align-items: center;
+      padding: 4px 6px;
+      border: 1.5px solid rgba(251, 191, 36, 0.85);
+      background: linear-gradient(145deg, rgba(120, 53, 15, .96), rgba(69, 26, 3, .98));
+      box-shadow: 0 4px 16px rgba(0, 0, 0, .32), inset 0 0 14px rgba(251, 191, 36, .18);
+    }
+    .tile.meter-label::before {
+      height: 2px;
+      opacity: 1;
+      background: linear-gradient(90deg, transparent, #fde047, transparent);
+    }
+    .tile.meter-label:hover {
+      border-color: #fde047;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, .38), 0 0 14px rgba(251, 191, 36, .35);
+    }
+    .meter-label-text {
+      width: 100%;
+      text-align: center;
+      color: #fef08a;
+      font-size: clamp(10.5px, 0.92vw, 14px);
+      font-weight: 800;
+      letter-spacing: .25px;
+      line-height: 1.15;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     /* สีกลุ่มที่ 2 (กล่องที่ 4, 5, 6 ของแถวที่ 2-11): เขียวมรกต */
@@ -399,7 +431,6 @@
 
       const config = {};
       for (let i = 0; i < TOTAL; i++) {
-        // ค่าเริ่มต้นเรียงคอลัมน์จาก B7 เป็นต้นไป (106 คอลัมน์ -> B7:EC7)
         let colNum = i + 2; // 2 = B
         let colLetters = "";
         while (colNum > 0) {
@@ -419,7 +450,7 @@
     BOX_CONFIG.BOX4 = ["Temp Out", "C", "DS7"];
     BOX_CONFIG.BOX5 = ["Hood IN", "RPM", "DT7"];
     BOX_CONFIG.BOX6 = ["Hood Out", "RPM", "DU7"];
-    //  Power Meter 1
+    // Power Meter 1
     BOX_CONFIG.BOX7 = ["Volt L1", "V", "B7"];
     BOX_CONFIG.BOX8 = ["Volt L2", "V", "C7"];
     BOX_CONFIG.BOX9 = ["Volt L3", "V", "D7"];
@@ -529,10 +560,11 @@
     BOX_CONFIG.BOX104 = ["Power L2", "W", "J7"];
     BOX_CONFIG.BOX105 = ["Power L3", "W", "K7"];
     BOX_CONFIG.BOX106 = ["kWh", "unit", "M7"];
-  
+
     const boxEntries = Object.entries(BOX_CONFIG);
-    const TOTAL_TILES = boxEntries.length;
+    const TOTAL_TILES = boxEntries.length; // 106 กล่องข้อมูล
     const FIRST_ROW_COUNT = 6;
+    const OTHER_ROWS = 10;
     const OTHER_COLUMNS = 10;
 
     const featuredGrid = document.getElementById("featuredGrid");
@@ -545,12 +577,59 @@
       return text === "" ? "—" : text;
     }
 
-    function getOtherRowColorClass(otherIndex) {
-      const colInRow = (otherIndex % OTHER_COLUMNS) + 1;
+    function getOtherRowColorClass(colInRow) {
+      // colInRow คือลำดับกล่องข้อมูล (1 ถึง 10) ในแต่ละแถวที่ 2-11
       if (colInRow >= 4 && colInRow <= 6) return " col-group-456";
       if (colInRow >= 7 && colInRow <= 9) return " col-group-789";
       if (colInRow === 10) return " col-group-10";
       return "";
+    }
+
+    function createMeterLabelTile(meterNumber) {
+      const tile = document.createElement("article");
+      tile.className = "tile meter-label";
+
+      const label = document.createElement("div");
+      label.className = "meter-label-text";
+      label.textContent = `Power Meter${meterNumber}`;
+
+      tile.append(label);
+      return tile;
+    }
+
+    function createDataTile(boxIndex) {
+      const [, cfg] = boxEntries[boxIndex];
+      const labelA = cfg[0] ?? "";
+      const labelB = cfg[1] ?? "";
+
+      const isFeatured = boxIndex < FIRST_ROW_COUNT;
+      const colInRow = ((boxIndex - FIRST_ROW_COUNT) % OTHER_COLUMNS) + 1;
+      const extraClass = isFeatured
+        ? " featured"
+        : getOtherRowColorClass(colInRow);
+
+      const tile = document.createElement("article");
+      tile.className = "tile" + extraClass;
+
+      const meta = document.createElement("div");
+      meta.className = "tile-meta";
+
+      const a = document.createElement("span");
+      a.className = "a-label";
+      a.textContent = labelA;
+
+      const b = document.createElement("span");
+      b.className = "b-label";
+      b.textContent = labelB;
+
+      const value = document.createElement("div");
+      value.className = "tile-value";
+      value.textContent = "—";
+
+      meta.append(a, b);
+      tile.append(meta, value);
+      valueElements[boxIndex] = value;
+      return tile;
     }
 
     function cellRefToCoords(ref) {
@@ -600,42 +679,21 @@
       grid.innerHTML = "";
       valueElements.length = 0;
 
-      for (let i = 0; i < TOTAL_TILES; i++) {
-        const [, cfg] = boxEntries[i];
-        const labelA = cfg[0] ?? "";
-        const labelB = cfg[1] ?? "";
+      // แถวที่ 1: กล่อง 1 - 6
+      for (let i = 0; i < Math.min(FIRST_ROW_COUNT, TOTAL_TILES); i++) {
+        featuredGrid.appendChild(createDataTile(i));
+      }
 
-        const isFeatured = i < FIRST_ROW_COUNT;
-        const extraClass = isFeatured
-          ? " featured"
-          : getOtherRowColorClass(i - FIRST_ROW_COUNT);
+      // แถวที่ 2 - 11: แทรก Power Meter1 - Power Meter10 ด้านซ้ายของแต่ละแถว
+      let dataIdx = FIRST_ROW_COUNT;
+      for (let r = 0; r < OTHER_ROWS; r++) {
+        grid.appendChild(createMeterLabelTile(r + 1));
 
-        const tile = document.createElement("article");
-        tile.className = "tile" + extraClass;
-
-        const meta = document.createElement("div");
-        meta.className = "tile-meta";
-
-        const a = document.createElement("span");
-        a.className = "a-label";
-        a.textContent = labelA;
-
-        const b = document.createElement("span");
-        b.className = "b-label";
-        b.textContent = labelB;
-
-        const value = document.createElement("div");
-        value.className = "tile-value";
-        value.textContent = "—";
-
-        meta.append(a, b);
-        tile.append(meta, value);
-        valueElements.push(value);
-
-        if (isFeatured) {
-          featuredGrid.appendChild(tile);
-        } else {
-          grid.appendChild(tile);
+        for (let c = 0; c < OTHER_COLUMNS; c++) {
+          if (dataIdx < TOTAL_TILES) {
+            grid.appendChild(createDataTile(dataIdx));
+            dataIdx++;
+          }
         }
       }
     }
