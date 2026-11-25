@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#080f1c">
+  <title>HAO2C Line Dashboard</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #080f1c;
+      --surface: #101b2b;
+      --surface-2: #142238;
+      --surface-3: #1a2b43;
+      --line: rgba(148, 171, 202, .16);
+      --text: #edf4ff;
+      --muted: #91a4bd;
+      --accent: #39b7ff;
+      --accent-2: #167bd1;
+      --featured-accent: #f59e0b;
+      --glow: rgba(38, 166, 255, .18);
+      --shadow: 0 4px 14px rgba(0, 0, 0, .24);
+    }
+    * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+    html { height: 100%; background: var(--bg); }
+    body {
+      margin: 0;
+      height: 100dvh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      padding: 0 16px 12px;
+      color: var(--text);
+      background:
+        radial-gradient(ellipse at 15% -10%, rgba(24, 112, 180, .19), transparent 38%),
+        radial-gradient(ellipse at 90% 0%, rgba(20, 74, 132, .13), transparent 32%),
+        var(--bg);
+      font-family: Inter, "Segoe UI", Tahoma, Arial, "Noto Sans Thai", sans-serif;
+    }
+
+    /* ส่วนหัว */
+    .topbar {
+      width: 100%;
+      max-width: 1840px;
+      height: 54px;
+      flex: 0 0 54px;
+      margin: 0 auto 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      border-bottom: 1px solid var(--line);
+    }
+    .brand-wrap { display: flex; align-items: center; gap: 11px; min-width: 0; }
+    .brand-mark {
+      width: 34px; height: 34px; flex: 0 0 34px;
+      display: grid; place-items: center;
+      border: 1px solid rgba(57, 183, 255, .35);
+      border-radius: 10px;
+      color: var(--accent);
+      background: linear-gradient(145deg, rgba(57,183,255,.18), rgba(22,123,209,.07));
+      box-shadow: 0 0 18px var(--glow);
+    }
+    .brand-mark svg { width: 18px; height: 18px; }
+    .brand {
+      min-width: 0;
+      font-size: clamp(16px, 1.6vw, 21px);
+      font-weight: 750;
+      letter-spacing: .2px;
+      line-height: 1.15;
+    }
+    .brand-subtitle {
+      margin-top: 2px;
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1.4px;
+      text-transform: uppercase;
+    }
+
+    /* กลุ่มปุ่มด้านขวาในส่วนหัว (หน้าแรก + หน้า 1 / หน้า 2) */
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .home-btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+      height: 34px; padding: 0 13px;
+      color: #eaf7ff; text-decoration: none; white-space: nowrap;
+      border: 1px solid rgba(57,183,255,.35);
+      border-radius: 9px;
+      background: linear-gradient(135deg, #147fc5, #105b9b);
+      box-shadow: 0 4px 14px rgba(0, 111, 190, .2);
+      font-size: 12px; font-weight: 700;
+      transition: .2s ease;
+    }
+    .home-btn:hover { filter: brightness(1.13); transform: translateY(-1px); }
+    .home-btn svg { width: 15px; height: 15px; fill: currentColor; }
+
+    .page-tabs {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 3px; border: 1px solid var(--line);
+      border-radius: 9px; background: rgba(16, 27, 43, .9);
+    }
+    .tab {
+      min-width: 72px; height: 28px; padding: 0 12px;
+      border: 0; border-radius: 6px;
+      color: var(--muted); background: transparent;
+      font: inherit; font-size: 12px; font-weight: 700;
+      cursor: pointer; transition: .2s ease;
+    }
+    .tab:hover { color: var(--text); background: rgba(255,255,255,.05); }
+    .tab.active {
+      color: #fff;
+      background: linear-gradient(135deg, #168bd2, #1263a7);
+      box-shadow: 0 2px 8px rgba(0, 124, 210, .22);
+    }
+
+    /* พื้นที่เนื้อหาหลัก (จัดเต็มความสูงหน้าจอโดยไม่เลื่อนเมาส์) */
+    main {
+      width: 100%;
+      max-width: 1840px;
+      margin: 0 auto;
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+    }
+    #page1 {
+      flex: 1;
+      min-height: 0;
+      display: grid;
+      grid-template-rows: 1.25fr 10fr;
+      gap: 8px;
+    }
+
+    /* แถวที่ 1: 6 กล่อง */
+    .featured-grid {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 8px;
+      min-height: 0;
+    }
+
+    /* แถวที่ 2-11: 10 แถว x 10 กล่อง */
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: repeat(10, minmax(0, 1fr));
+      grid-template-rows: repeat(10, minmax(0, 1fr));
+      gap: 6px;
+      min-height: 0;
+    }
+
+    .tile {
+      position: relative;
+      min-width: 0;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 5px 8px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      background: linear-gradient(150deg, rgba(23, 39, 60, .98), rgba(14, 25, 41, .98));
+      box-shadow: var(--shadow);
+      transition: transform .15s ease, border-color .15s ease, box-shadow .15s ease;
+    }
+    .tile::before {
+      content: ""; position: absolute; top: 0; left: 10px; right: 10px;
+      height: 1.5px; border-radius: 0 0 3px 3px;
+      background: linear-gradient(90deg, transparent, rgba(57,183,255,.8), transparent);
+      opacity: .65;
+    }
+    .tile:hover {
+      transform: translateY(-1px);
+      border-color: rgba(57,183,255,.45);
+      z-index: 2;
+    }
+
+    /* สไตล์เฉพาะแถวที่ 1 (ขอบสีทองเด่นกว่าแถวอื่น) */
+    .tile.featured {
+      padding: 7px 11px;
+      border: 1.5px solid rgba(245, 158, 11, 0.7);
+      border-radius: 10px;
+      background: linear-gradient(145deg, rgba(38, 35, 32, .96), rgba(16, 25, 40, .99));
+      box-shadow: 0 4px 16px rgba(0, 0, 0, .28), 0 0 12px rgba(245, 158, 11, .14);
+    }
+    .tile.featured::before {
+      height: 2.5px;
+      opacity: 1;
+      background: linear-gradient(90deg, transparent, #fbbf24, transparent);
+    }
+    .tile.featured:hover {
+      border-color: #fbbf24;
+      box-shadow: 0 6px 18px rgba(0,0,0,.35), 0 0 16px rgba(245, 158, 11, .28);
+    }
+
+    .tile-meta {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 6px; min-width: 0;
+      color: #9eb5ce;
+      font-size: clamp(9.5px, 0.72vw, 11px);
+      font-weight: 700;
+      letter-spacing: .2px;
+      line-height: 1.1;
+    }
+    .tile.featured .tile-meta {
+      font-size: clamp(11px, 0.85vw, 13px);
+      color: #fde68a;
+    }
+    .tile-meta span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .tile-meta .b-label { text-align: right; }
+
+    .tile-value {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      color: #fffbeb;
+      font-size: clamp(14px, 1.35vw, 21px);
+      font-weight: 800;
+      line-height: 1.1;
+      letter-spacing: .2px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .tile:not(.featured) .tile-value {
+      font-size: clamp(11px, 0.95vw, 15px);
+      color: #dbeaff;
+    }
+
+    #page2 {
+      flex: 1;
+      display: flex;
+    }
+    .page-placeholder {
+      flex: 1;
+      display: grid; place-items: center; padding: 30px;
+      color: var(--muted); text-align: center;
+      border: 1px dashed rgba(148,171,202,.25);
+      border-radius: 14px; background: rgba(16,27,43,.55);
+    }
+    .page-placeholder strong { color: var(--text); font-size: 18px; }
+
+    /* จอแท็บเล็ต / โน้ตบุ๊กขนาดเล็ก (เปิดการเลื่อนอัตโนมัติเพื่อไม่ให้กล่องเล็กเกินไป) */
+    @media (max-width: 1100px) {
+      body {
+        height: auto;
+        min-height: 100vh;
+        overflow-y: auto;
+        padding: 0 14px 24px;
+      }
+      #page1 { display: block; }
+      .featured-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        margin-bottom: 10px;
+      }
+      .dashboard-grid {
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        grid-template-rows: auto;
+      }
+      .tile { min-height: 76px; padding: 8px 10px; }
+      .tile.featured { min-height: 94px; }
+    }
+
+    /* จอมือถือ */
+    @media (max-width: 650px) {
+      body { padding: 0 10px 24px; }
+      .topbar {
+        height: auto;
+        flex: none;
+        padding: 10px 0;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .brand-mark { width: 32px; height: 32px; flex-basis: 32px; }
+      .brand { font-size: 16px; }
+      .brand-subtitle { font-size: 9px; }
+      .header-actions { width: 100%; justify-content: space-between; }
+      .home-btn { height: 32px; padding: 0 10px; font-size: 11px; }
+      .page-tabs { flex: 1; }
+      .tab { flex: 1; min-width: 0; height: 26px; font-size: 11px; }
+      .featured-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
+      .dashboard-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; }
+      .tile { min-height: 72px; padding: 7px 8px; }
+      .tile.featured { min-height: 86px; }
+      .tile-meta { font-size: 10px; }
+      .tile-value { font-size: 15px; }
+      .tile:not(.featured) .tile-value { font-size: 13px; }
+    }
+
+    @media (max-width: 370px) {
+      .featured-grid, .dashboard-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand-wrap">
+      <div class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 19V5l9 8 9-8v14"/><path d="M7 19v-5m10 5v-5"/>
+        </svg>
+      </div>
+      <div>
+        <div class="brand">HAO2C Line Dashboard</div>
+        <div class="brand-subtitle">RiD FINITY Designed</div>
+      </div>
+    </div>
+
+    <div class="header-actions">
+      <a class="home-btn" href="https://ridfinity88.github.io/Machine-Plant2-Dashboard/index.html" aria-label="กลับไปหน้าแรก">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 2.5 11h2.7v9h5.2v-5.8h3.2V20h5.2v-9h2.7L12 3z"/></svg>
+        หน้าแรก
+      </a>
+      <nav class="page-tabs" aria-label="เลือกหน้า Dashboard">
+        <button class="tab active" type="button" data-page="page1">หน้า 1</button>
+        <button class="tab" type="button" data-page="page2">หน้า 2</button>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section id="page1">
+      <!-- แถวที่ 1 (6 กล่อง) -->
+      <div class="featured-grid" id="featuredGrid"></div>
+      <!-- แถวที่ 2 - 11 (10 แถว x 10 กล่อง) -->
+      <div class="dashboard-grid" id="dashboardGrid"></div>
+    </section>
+
+    <section id="page2" hidden>
+      <div class="page-placeholder">
+        <div>
+          <strong>หน้า 2</strong>
+          <div style="margin-top:8px">พื้นที่สำหรับพัฒนาหน้า Dashboard เพิ่มเติม</div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    // ===================== ตั้งค่า Google Sheets =====================
+    const SPREADSHEET_ID = "ใส่_SPREADSHEET_ID_ที่นี่";
+    const SHEET_NAME = "Sheet1";
+    const DATA_RANGE = "B7:EC7"; // 106 คอลัมน์ (B ถึง EC)
+
+    // แถวที่ 1 = 6 กล่อง | แถวที่ 2-11 = 10 แถว x 10 กล่อง
+    const FIRST_ROW_COUNT = 6;
+    const OTHER_ROWS = 10;
+    const OTHER_COLUMNS = 10;
+    const TOTAL_TILES = FIRST_ROW_COUNT + (OTHER_ROWS * OTHER_COLUMNS); // 106 กล่อง
+
+    // แก้ชื่อ A และ B ได้จากรายการนี้
+    const tileLabels = Array.from({ length: TOTAL_TILES }, (_, i) => ({
+      a: `A${i + 1}`,
+      b: `B${i + 1}`
+    }));
+
+    const featuredGrid = document.getElementById("featuredGrid");
+    const grid = document.getElementById("dashboardGrid");
+
+    function buildTileElement(index, cellValue, isFeatured) {
+      const tile = document.createElement("article");
+      tile.className = "tile" + (isFeatured ? " featured" : "");
+
+      const meta = document.createElement("div");
+      meta.className = "tile-meta";
+
+      const a = document.createElement("span");
+      a.className = "a-label";
+      a.textContent = tileLabels[index].a;
+
+      const b = document.createElement("span");
+      b.className = "b-label";
+      b.textContent = tileLabels[index].b;
+
+      const value = document.createElement("div");
+      value.className = "tile-value";
+      value.textContent = cellValue === null || cellValue === undefined || cellValue === ""
+        ? "—" : String(cellValue);
+
+      meta.append(a, b);
+      tile.append(meta, value);
+      return tile;
+    }
+
+    function createTiles(values = []) {
+      featuredGrid.innerHTML = "";
+      grid.innerHTML = "";
+
+      for (let i = 0; i < TOTAL_TILES; i++) {
+        const isFeatured = i < FIRST_ROW_COUNT;
+        const tile = buildTileElement(i, values[i], isFeatured);
+
+        if (isFeatured) {
+          featuredGrid.appendChild(tile);
+        } else {
+          grid.appendChild(tile);
+        }
+      }
+    }
+
+    async function loadSheetData() {
+      if (!SPREADSHEET_ID || SPREADSHEET_ID === "ใส่_SPREADSHEET_ID_ที่นี่") {
+        createTiles([]);
+        return;
+      }
+
+      try {
+        const range = encodeURIComponent(`${SHEET_NAME}!${DATA_RANGE}`);
+        const url = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?range=${range}&tqx=out:json`;
+        const response = await fetch(url);
+        if (!response.ok) throw new Error("Google Sheets response error");
+
+        const raw = await response.text();
+        const jsonText = raw.substring(raw.indexOf("{"), raw.lastIndexOf("}") + 1);
+        const result = JSON.parse(jsonText);
+        const row = result.table.rows[0];
+        const values = row ? row.c.map(cell => cell ? cell.v : "") : [];
+
+        createTiles(values.slice(0, TOTAL_TILES));
+      } catch (error) {
+        console.error(error);
+        createTiles([]);
+      }
+    }
+
+    document.querySelectorAll(".tab").forEach(button => {
+      button.addEventListener("click", () => {
+        const selectedPage = button.dataset.page;
+        document.querySelectorAll(".tab").forEach(tab =>
+          tab.classList.toggle("active", tab === button)
+        );
+        document.getElementById("page1").hidden = selectedPage !== "page1";
+        document.getElementById("page2").hidden = selectedPage !== "page2";
+      });
+    });
+
+    createTiles([]);
+    loadSheetData();
+  </script>
+</body>
+</html>
