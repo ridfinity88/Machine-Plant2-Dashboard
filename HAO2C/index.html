@@ -384,20 +384,42 @@
     const WEB_APP_URL = "";
     const SPREADSHEET_ID = "1lhYka2bJqX942P1YM7NswWeHCLRMvhb2LwO9lmZMfVM";
     const SHEET_NAME = "Dashboard";
-    const DATA_RANGE = "B7:EC7";
 
     // อัปเดตข้อมูลอัตโนมัติทุก 30 วินาที
     const REFRESH_INTERVAL_MS = 30000;
 
-    const FIRST_ROW_COUNT = 6;
-    const OTHER_ROWS = 10;
-    const OTHER_COLUMNS = 10;
-    const TOTAL_TILES = FIRST_ROW_COUNT + (OTHER_ROWS * OTHER_COLUMNS); // 106 กล่อง
+    // ===================== ตั้งค่ารายกล่องแบบแก้ไขง่าย =====================
+    // รูปแบบ: BOXn: ["ชื่อ A", "ชื่อ B", "ช่องข้อมูลใน Google Sheet"]
+    // ตัวอย่าง: BOX1: ["ขนม", "ชิ้น", "B7"]
+    const BOX_CONFIG = (() => {
+      const FIRST_ROW_COUNT = 6;
+      const OTHER_ROWS = 10;
+      const OTHER_COLUMNS = 10;
+      const TOTAL = FIRST_ROW_COUNT + (OTHER_ROWS * OTHER_COLUMNS); // 106 กล่อง
 
-    const tileLabels = Array.from({ length: TOTAL_TILES }, (_, i) => ({
-      a: `A${i + 1}`,
-      b: `B${i + 1}`
-    }));
+      const config = {};
+      for (let i = 0; i < TOTAL; i++) {
+        // ค่าเริ่มต้นเรียงคอลัมน์จาก B7 เป็นต้นไป (106 คอลัมน์ -> B7:EC7)
+        let colNum = i + 2; // 2 = B
+        let colLetters = "";
+        while (colNum > 0) {
+          const rem = (colNum - 1) % 26;
+          colLetters = String.fromCharCode(65 + rem) + colLetters;
+          colNum = Math.floor((colNum - 1) / 26);
+        }
+        config[`BOX${i + 1}`] = [`A${i + 1}`, `B${i + 1}`, `${colLetters}7`];
+      }
+      return config;
+    })();
+
+    // คุณสามารถเขียนทับรายกล่องที่ต้องการแก้เองด้านล่างนี้ได้เลย เช่น:
+    // BOX_CONFIG.BOX1 = ["ขนม", "ชิ้น", "B7"];
+    // BOX_CONFIG.BOX2 = ["เครื่องดื่ม", "ขวด", "C7"];
+
+    const boxEntries = Object.entries(BOX_CONFIG);
+    const TOTAL_TILES = boxEntries.length;
+    const FIRST_ROW_COUNT = 6;
+    const OTHER_COLUMNS = 10;
 
     const featuredGrid = document.getElementById("featuredGrid");
     const grid = document.getElementById("dashboardGrid");
@@ -410,13 +432,53 @@
     }
 
     function getOtherRowColorClass(otherIndex) {
-      // otherIndex เริ่มจาก 0 สำหรับกล่องที่ 1 ของแถวที่ 2
-      // ตำแหน่งในแต่ละแถว (1 ถึง 10) คือ (otherIndex % 10) + 1
       const colInRow = (otherIndex % OTHER_COLUMNS) + 1;
       if (colInRow >= 4 && colInRow <= 6) return " col-group-456";
       if (colInRow >= 7 && colInRow <= 9) return " col-group-789";
       if (colInRow === 10) return " col-group-10";
-      return ""; // กล่องที่ 1, 2, 3 ใช้สีเดิม
+      return "";
+    }
+
+    function cellRefToCoords(ref) {
+      const match = String(ref || "").trim().toUpperCase().match(/^([A-Z]+)(\d+)$/);
+      if (!match) return null;
+      const letters = match[1];
+      const row = parseInt(match[2], 10);
+      let col = 0;
+      for (let i = 0; i < letters.length; i++) {
+        col = col * 26 + (letters.charCodeAt(i) - 64);
+      }
+      return { row, col };
+    }
+
+    function coordsToCellRef(row, col) {
+      let c = col;
+      let letters = "";
+      while (c > 0) {
+        const rem = (c - 1) % 26;
+        letters = String.fromCharCode(65 + rem) + letters;
+        c = Math.floor((c - 1) / 26);
+      }
+      return `${letters}${row}`;
+    }
+
+    function getBoundingRange() {
+      let minRow = Infinity, maxRow = -Infinity, minCol = Infinity, maxCol = -Infinity;
+      for (const [, cfg] of boxEntries) {
+        const coords = cellRefToCoords(cfg[2]);
+        if (!coords) continue;
+        if (coords.row < minRow) minRow = coords.row;
+        if (coords.row > maxRow) maxRow = coords.row;
+        if (coords.col < minCol) minCol = coords.col;
+        if (coords.col > maxCol) maxCol = coords.col;
+      }
+      if (!isFinite(minRow)) return { range: "B7:EC7", minRow: 7, minCol: 2, cols: 106 };
+      return {
+        range: `${coordsToCellRef(minRow, minCol)}:${coordsToCellRef(maxRow, maxCol)}`,
+        minRow,
+        minCol,
+        cols: maxCol - minCol + 1
+      };
     }
 
     function initTiles() {
@@ -425,6 +487,10 @@
       valueElements.length = 0;
 
       for (let i = 0; i < TOTAL_TILES; i++) {
+        const [, cfg] = boxEntries[i];
+        const labelA = cfg[0] ?? "";
+        const labelB = cfg[1] ?? "";
+
         const isFeatured = i < FIRST_ROW_COUNT;
         const extraClass = isFeatured
           ? " featured"
@@ -438,11 +504,11 @@
 
         const a = document.createElement("span");
         a.className = "a-label";
-        a.textContent = tileLabels[i].a;
+        a.textContent = labelA;
 
         const b = document.createElement("span");
         b.className = "b-label";
-        b.textContent = tileLabels[i].b;
+        b.textContent = labelB;
 
         const value = document.createElement("div");
         value.className = "tile-value";
@@ -460,16 +526,19 @@
       }
     }
 
-    function updateTiles(values = []) {
+    function applyValuesByCellMap(cellMap) {
       for (let i = 0; i < TOTAL_TILES; i++) {
-        const nextText = formatCellValue(values[i]);
+        const [, cfg] = boxEntries[i];
+        const cellKey = String(cfg[2] || "").trim().toUpperCase();
+        const rawVal = cellKey ? cellMap[cellKey] : "";
+        const nextText = formatCellValue(rawVal);
         if (valueElements[i] && valueElements[i].textContent !== nextText) {
           valueElements[i].textContent = nextText;
         }
       }
     }
 
-    function fetchViaJsonp(baseUrl) {
+    function fetchViaJsonp(baseUrl, bounds) {
       return new Promise((resolve, reject) => {
         const cbName = "__hao2cSheetCb_" + Date.now() + "_" + Math.floor(Math.random() * 10000);
         const script = document.createElement("script");
@@ -495,30 +564,52 @@
           reject(new Error("Apps Script load error"));
         };
 
-        script.src = `${baseUrl}${separator}callback=${cbName}&_t=${Date.now()}`;
+        const params = new URLSearchParams({
+          sheet: SHEET_NAME,
+          range: bounds.range,
+          callback: cbName,
+          _t: String(Date.now())
+        });
+        script.src = `${baseUrl}${separator}${params.toString()}`;
         document.body.appendChild(script);
       });
     }
 
     async function loadSheetData() {
+      const bounds = getBoundingRange();
+      const cellMap = {};
+
       try {
         const cleanWebApp = (WEB_APP_URL || "").trim();
         if (cleanWebApp && !cleanWebApp.includes("ใส่_")) {
-          const data = await fetchViaJsonp(cleanWebApp);
-          if (!data || !data.ok || !Array.isArray(data.values)) {
-            throw new Error("Invalid Apps Script response");
+          const data = await fetchViaJsonp(cleanWebApp, bounds);
+          if (!data || !data.ok) throw new Error("Invalid Apps Script response");
+
+          // รองรับทั้งรูปแบบ { cells: { B7: "123" } } และ { values: [...] }
+          if (data.cells && typeof data.cells === "object") {
+            for (const [k, v] of Object.entries(data.cells)) {
+              cellMap[String(k).trim().toUpperCase()] = v;
+            }
+          } else if (Array.isArray(data.values)) {
+            const rows = Array.isArray(data.values[0]) ? data.values : [data.values];
+            rows.forEach((r, rIdx) => {
+              r.forEach((val, cIdx) => {
+                const ref = coordsToCellRef(bounds.minRow + rIdx, bounds.minCol + cIdx);
+                cellMap[ref] = val;
+              });
+            });
           }
-          updateTiles(data.values.slice(0, TOTAL_TILES));
+          applyValuesByCellMap(cellMap);
           return;
         }
 
         const cleanSheetId = (SPREADSHEET_ID || "").trim();
-        if (!cleanSheetId || cleanSheetId.includes("ใส่_SPREADSHEET_ID_ที่นี่")) {
+        if (!cleanSheetId || cleanSheetId.includes("1lhYka2bJqX942P1YM7NswWeHCLRMvhb2LwO9lmZMfVM")) {
           return;
         }
 
-        const range = encodeURIComponent(`${SHEET_NAME}!${DATA_RANGE}`);
-        const url = `https://docs.google.com/spreadsheets/d/${cleanSheetId}/gviz/tq?range=${range}&tqx=out:json&_t=${Date.now()}`;
+        const encodedRange = encodeURIComponent(`${SHEET_NAME}!${bounds.range}`);
+        const url = `https://docs.google.com/spreadsheets/d/${cleanSheetId}/gviz/tq?range=${encodedRange}&tqx=out:json&_t=${Date.now()}`;
         const response = await fetch(url, { cache: "no-store" });
         if (!response.ok) throw new Error("Google Sheets response error");
 
@@ -528,12 +619,16 @@
         if (start === -1 || end === -1) throw new Error("Invalid gviz JSON");
 
         const result = JSON.parse(raw.substring(start, end + 1));
-        const row = result.table && result.table.rows && result.table.rows[0];
-        const values = row && Array.isArray(row.c)
-          ? row.c.map(cell => (cell && cell.v !== null && cell.v !== undefined) ? (cell.f ?? cell.v) : "")
-          : [];
+        const tableRows = (result.table && result.table.rows) || [];
+        tableRows.forEach((rowObj, rIdx) => {
+          const cells = (rowObj && rowObj.c) || [];
+          cells.forEach((cell, cIdx) => {
+            const ref = coordsToCellRef(bounds.minRow + rIdx, bounds.minCol + cIdx);
+            cellMap[ref] = (cell && cell.v !== null && cell.v !== undefined) ? (cell.f ?? cell.v) : "";
+          });
+        });
 
-        updateTiles(values.slice(0, TOTAL_TILES));
+        applyValuesByCellMap(cellMap);
       } catch (error) {
         console.error("โหลดข้อมูล Google Sheets ไม่สำเร็จ:", error);
       }
