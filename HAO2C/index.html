@@ -299,8 +299,6 @@
       color: #fde68a;
     }
     .tile-meta span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .tile-meta .a-label { text-align: left; }
-    .tile-meta .center-label { flex: 1; text-align: center; }
     .tile-meta .b-label { text-align: right; }
 
     .tile-value {
@@ -359,26 +357,33 @@
       box-shadow: 0 24px 60px rgba(0, 0, 0, .65);
     }
     .chart-modal-header {
-      display: flex;
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
       align-items: center;
-      justify-content: space-between;
       gap: 16px;
       padding-bottom: 12px;
       border-bottom: 1px solid var(--line);
       flex: 0 0 auto;
     }
-    .chart-modal-title-wrap {
-      display: flex;
-      align-items: baseline;
-      gap: 12px;
-      flex-wrap: wrap;
-      min-width: 0;
+    .chart-modal-row-label {
+      text-align: left;
+      font-size: clamp(15px, 1.3vw, 19px);
+      font-weight: 800;
+      color: #fde047;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
     .chart-modal-title {
       margin: 0;
+      text-align: center;
       font-size: clamp(18px, 1.8vw, 24px);
       font-weight: 800;
       color: var(--text);
+    }
+    .chart-modal-actions {
+      display: flex;
+      justify-content: flex-end;
     }
     .chart-close-btn {
       display: inline-flex;
@@ -520,12 +525,13 @@
   <div class="chart-modal-backdrop" id="chartModal" hidden role="dialog" aria-modal="true" aria-labelledby="chartModalTitle">
     <div class="chart-modal-dialog">
       <div class="chart-modal-header">
-        <div class="chart-modal-title-wrap">
-          <h2 class="chart-modal-title" id="chartModalTitle">กราฟแสดงข้อมูล</h2>
+        <div class="chart-modal-row-label" id="chartModalRowLabel"></div>
+        <h2 class="chart-modal-title" id="chartModalTitle">กราฟแสดงข้อมูล</h2>
+        <div class="chart-modal-actions">
+          <button class="chart-close-btn" type="button" id="closeChartModal" aria-label="ปิดหน้าต่าง">
+            ✕ ปิด
+          </button>
         </div>
-        <button class="chart-close-btn" type="button" id="closeChartModal" aria-label="ปิดหน้าต่าง">
-          ✕ ปิด
-        </button>
       </div>
       <div class="chart-canvas-wrap">
         <canvas id="lineChartCanvas"></canvas>
@@ -705,7 +711,7 @@
       return cfg;
     })();
 
-    // ตัวอย่างการตั้งค่าเฉพาะ Box แบบระบุรายช่อง 1 ถึง 60:   
+    // ตัวอย่างการตั้งค่าเฉพาะ Box แบบระบุรายช่อง 1 ถึง 60:
     const BOX_COLUMN_MAP = {
     BOX1: "DV",
     BOX2: "DW",
@@ -821,7 +827,7 @@
             (_, i) => `${column}${i + 11}`
         );
     });
-    
+
     const featuredGrid = document.getElementById("featuredGrid");
     const grid = document.getElementById("dashboardGrid");
     const valueElements = [];
@@ -854,13 +860,21 @@
       return tile;
     }
 
+    function getMeterRowNameForBox(boxIndex) {
+      if (boxIndex < FIRST_ROW_COUNT) return "";
+      const rowIndex = Math.floor((boxIndex - FIRST_ROW_COUNT) / OTHER_COLUMNS);
+      if (rowIndex >= 0 && rowIndex < OTHER_ROWS) {
+        return `Power Meter ${rowIndex + 1}`;
+      }
+      return "";
+    }
+
     function createDataTile(boxIndex) {
       const [boxKey, cfg] = boxEntries[boxIndex];
       const labelA = cfg[0] ?? "";
       const labelB = cfg[1] ?? "";
 
       const isFeatured = boxIndex < FIRST_ROW_COUNT;
-      const rowIndex = Math.floor((boxIndex - FIRST_ROW_COUNT) / OTHER_COLUMNS); // 0..9 -> Power Meter 1..10
       const colInRow = ((boxIndex - FIRST_ROW_COUNT) % OTHER_COLUMNS) + 1;
       const extraClass = isFeatured
         ? " featured"
@@ -878,28 +892,17 @@
 
       const a = document.createElement("span");
       a.className = "a-label";
-
-      const center = document.createElement("span");
-      center.className = "center-label";
+      a.textContent = labelA;
 
       const b = document.createElement("span");
       b.className = "b-label";
       b.textContent = labelB;
 
-      // แถวที่ 2-11 (Power Meter 1 - 10): ชื่อแถวอยู่แทนตำแหน่งเดิม (ซ้าย) และ labelA อยู่ตรงกลาง
-      if (!isFeatured && rowIndex >= 0 && rowIndex < OTHER_ROWS) {
-        a.textContent = `Power Meter ${rowIndex + 1}`;
-        center.textContent = labelA;
-      } else {
-        a.textContent = labelA;
-        center.textContent = "";
-      }
-
       const value = document.createElement("div");
       value.className = "tile-value";
       value.textContent = "—";
 
-      meta.append(a, center, b);
+      meta.append(a, b);
       tile.append(meta, value);
       valueElements[boxIndex] = value;
 
@@ -1115,6 +1118,7 @@
 
     // ===================== POPUP และกราฟเส้น (แกน X = เวลา นาที 1-60, แกน Y = ค่า) =====================
     const chartModal = document.getElementById("chartModal");
+    const chartModalRowLabel = document.getElementById("chartModalRowLabel");
     const chartModalTitle = document.getElementById("chartModalTitle");
     const closeChartModalBtn = document.getElementById("closeChartModal");
     const lineChartCanvas = document.getElementById("lineChartCanvas");
@@ -1268,8 +1272,10 @@
       const [boxKey, cfg] = boxEntries[boxIndex];
       const nameA = cfg[0] || boxKey;
       const unitB = cfg[1] ? ` (${cfg[1]})` : "";
+      const rowLabel = getMeterRowNameForBox(boxIndex);
 
       activePopupBoxIndex = boxIndex;
+      chartModalRowLabel.textContent = rowLabel;
       chartModalTitle.textContent = `${nameA}${unitB}`;
       chartModal.hidden = false;
 
