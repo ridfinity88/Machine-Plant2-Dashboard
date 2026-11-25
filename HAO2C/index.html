@@ -299,6 +299,8 @@
       color: #fde68a;
     }
     .tile-meta span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .tile-meta .a-label { text-align: left; }
+    .tile-meta .center-label { flex: 1; text-align: center; }
     .tile-meta .b-label { text-align: right; }
 
     .tile-value {
@@ -377,11 +379,6 @@
       font-size: clamp(18px, 1.8vw, 24px);
       font-weight: 800;
       color: var(--text);
-    }
-    .chart-modal-meta {
-      font-size: 13px;
-      font-weight: 700;
-      color: var(--accent);
     }
     .chart-close-btn {
       display: inline-flex;
@@ -525,7 +522,6 @@
       <div class="chart-modal-header">
         <div class="chart-modal-title-wrap">
           <h2 class="chart-modal-title" id="chartModalTitle">กราฟแสดงข้อมูล</h2>
-          <span class="chart-modal-meta" id="chartModalMeta"></span>
         </div>
         <button class="chart-close-btn" type="button" id="closeChartModal" aria-label="ปิดหน้าต่าง">
           ✕ ปิด
@@ -693,12 +689,37 @@
     const OTHER_ROWS = 10;
     const OTHER_COLUMNS = 10;
 
+    // ===================== ตั้งค่าเซลล์กราฟ 60 นาทีของแต่ละ Box =====================
+    // รูปแบบ: BOXn: ["A1", "A2", "A3", ..., "A60"] (ดัชนี 0 = นาทีที่ 1, ดัชนี 59 = นาทีที่ 60)
+    // แก้ไขค่าเริ่มต้นของแต่ละ Box ด้านล่างได้โดยตรง
+    const CHART_SERIES_CONFIG = (() => {
+      const cfg = {};
+      for (let i = 0; i < TOTAL_TILES; i++) {
+        const boxKey = `BOX${i + 1}`;
+        const cells60 = [];
+        for (let m = 1; m <= 60; m++) {
+          cells60.push(`A${m}`);
+        }
+        cfg[boxKey] = cells60;
+      }
+      return cfg;
+    })();
+
+    // ตัวอย่างการตั้งค่าเฉพาะ Box แบบระบุรายช่อง 1 ถึง 60:  
+    CHART_SERIES_CONFIG.BOX1 = ["B11", "B12", "B13", "B14", "B15", "B16", "B17", "B18", "B19", "B20", "B21", "B22", "B23", "B24", "B25", "B26", "B27", "B28", "B29", "B30", "B31", "B32", "B33", "B34", "B35", "B36", "B37", "B38", "B39", "B40", "B41", "B42", "B43", "B44", "B45", "B46", "B47", "B48", "B49", "B50", "B51", "B52", "B53", "B54", "B55", "B56", "B57", "B58", "B59", "B60", "B61", "B62", "B63", "B64", "B65", "B66", "B67", "B68", "B69", "B70"];
+    CHART_SERIES_CONFIG.BOX2 = ["C11", "C12", "C13", "C14", "C15", "C16", "C17", "C18", "C19", "C20", "C21", "C22", "C23", "C24", "C25", "C26", "C27", "C28", "C29", "C30", "C31", "C32", "C33", "C34", "C35", "C36", "C37", "C38", "C39", "C40", "C41", "C42", "C43", "C44", "C45", "C46", "C47", "C48", "C49", "C50", "C51", "C52", "C53", "C54", "C55", "C56", "C57", "C58", "C59", "C60", "C61", "C62", "C63", "C64", "C65", "C66", "C67", "C68", "C69", "C70"];
+    CHART_SERIES_CONFIG.BOX3 = ["D11", "D12", "D13", "D14", "D15", "D16", "D17", "D18", "D19", "D20", "D21", "D22", "D23", "D24", "D25", "D26", "D27", "D28", "D29", "D30", "D31", "D32", "D33", "D34", "D35", "D36", "D37", "D38", "D39", "D40", "D41", "D42", "D43", "D44", "D45", "D46", "D47", "D48", "D49", "D50", "D51", "D52", "D53", "D54", "D55", "D56", "D57", "D58", "D59", "D60", "D61", "D62", "D63", "D64", "D65", "D66", "D67", "D68", "D69", "D70"];
+    CHART_SERIES_CONFIG.BOX4 = ["E11", "E12", "E13", "E14", "E15", "E16", "E17", "E18", "E19", "E20", "E21", "E22", "E23", "E24", "E25", "E26", "E27", "E28", "E29", "E30", "E31", "E32", "E33", "E34", "E35", "E36", "E37", "E38", "E39", "E40", "E41", "E42", "E43", "E44", "E45", "E46", "E47", "E48", "E49", "E50", "E51", "E52", "E53", "E54", "E55", "E56", "E57", "E58", "E59", "E60", "E61", "E62", "E63", "E64", "E65", "E66", "E67", "E68", "E69", "E70"];
+    CHART_SERIES_CONFIG.BOX5 = ["F11", "F12", "F13", "F14", "F15", "F16", "F17", "F18", "F19", "F20", "F21", "F22", "F23", "F24", "F25", "F26", "F27", "F28", "F29", "F30", "F31", "F32", "F33", "F34", "F35", "F36", "F37", "F38", "F39", "F40", "F41", "F42", "F43", "F44", "F45", "F46", "F47", "F48", "F49", "F50", "F51", "F52", "F53", "F54", "F55", "F56", "F57", "F58", "F59", "F60", "F61", "F62", "F63", "F64", "F65", "F66", "F67", "F68", "F69", "F70"];
+    CHART_SERIES_CONFIG.BOX6 = ["G11", "G12", "G13", "G14", "G15", "G16", "G17", "G18", "G19", "G20", "G21", "G22", "G23", "G24", "G25", "G26", "G27", "G28", "G29", "G30", "G31", "G32", "G33", "G34", "G35", "G36", "G37", "G38", "G39", "G40", "G41", "G42", "G43", "G44", "G45", "G46", "G47", "G48", "G49", "G50", "G51", "G52", "G53", "G54", "G55", "G56", "G57", "G58", "G59", "G60", "G61", "G62", "G63", "G64", "G65", "G66", "G67", "G68", "G69", "G70"];
+    CHART_SERIES_CONFIG.BOX7 = ["H11", "H12", "H13", "H14", "H15", "H16", "H17", "H18", "H19", "H20", "H21", "H22", "H23", "H24", "H25", "H26", "H27", "H28", "H29", "H30", "H31", "H32", "H33", "H34", "H35", "H36", "H37", "H38", "H39", "H40", "H41", "H42", "H43", "H44", "H45", "H46", "H47", "H48", "H49", "H50", "H51", "H52", "H53", "H54", "H55", "H56", "H57", "H58", "H59", "H60", "H61", "H62", "H63", "H64", "H65", "H66", "H67", "H68", "H69", "H70"];
+
+    
     const featuredGrid = document.getElementById("featuredGrid");
     const grid = document.getElementById("dashboardGrid");
     const valueElements = [];
 
-    // เก็บข้อมูลย้อนหลัง 60 นาทีต่อกล่อง (สำหรับเตรียมใช้งานร่วมกับกราฟ)
-    const boxHistoryMap = new Map();
+    let latestCellMap = {};
     let activePopupBoxIndex = null;
 
     function formatCellValue(cellValue) {
@@ -732,6 +753,7 @@
       const labelB = cfg[1] ?? "";
 
       const isFeatured = boxIndex < FIRST_ROW_COUNT;
+      const rowIndex = Math.floor((boxIndex - FIRST_ROW_COUNT) / OTHER_COLUMNS); // 0..9 -> Power Meter 1..10
       const colInRow = ((boxIndex - FIRST_ROW_COUNT) % OTHER_COLUMNS) + 1;
       const extraClass = isFeatured
         ? " featured"
@@ -749,17 +771,28 @@
 
       const a = document.createElement("span");
       a.className = "a-label";
-      a.textContent = labelA;
+
+      const center = document.createElement("span");
+      center.className = "center-label";
 
       const b = document.createElement("span");
       b.className = "b-label";
       b.textContent = labelB;
 
+      // แถวที่ 2-11 (Power Meter 1 - 10): ชื่อแถวอยู่แทนตำแหน่งเดิม (ซ้าย) และ labelA อยู่ตรงกลาง
+      if (!isFeatured && rowIndex >= 0 && rowIndex < OTHER_ROWS) {
+        a.textContent = `Power Meter ${rowIndex + 1}`;
+        center.textContent = labelA;
+      } else {
+        a.textContent = labelA;
+        center.textContent = "";
+      }
+
       const value = document.createElement("div");
       value.className = "tile-value";
       value.textContent = "—";
 
-      meta.append(a, b);
+      meta.append(a, center, b);
       tile.append(meta, value);
       valueElements[boxIndex] = value;
 
@@ -797,10 +830,14 @@
       return `${letters}${row}`;
     }
 
-    function getBoundingRange() {
+    function getBoundingRange(extraRefs = []) {
       let minRow = Infinity, maxRow = -Infinity, minCol = Infinity, maxCol = -Infinity;
-      for (const [, cfg] of boxEntries) {
-        const coords = cellRefToCoords(cfg[2]);
+      const allRefs = [
+        ...boxEntries.map(([, cfg]) => cfg[2]),
+        ...extraRefs
+      ];
+      for (const ref of allRefs) {
+        const coords = cellRefToCoords(ref);
         if (!coords) continue;
         if (coords.row < minRow) minRow = coords.row;
         if (coords.row > maxRow) maxRow = coords.row;
@@ -814,16 +851,6 @@
         minCol,
         cols: maxCol - minCol + 1
       };
-    }
-
-    function recordHistoryValue(boxKey, textVal) {
-      const num = parseFloat(String(textVal).replace(/,/g, ""));
-      const series = boxHistoryMap.get(boxKey) || [];
-      if (!Number.isNaN(num)) {
-        series.push(num);
-        if (series.length > 60) series.shift();
-        boxHistoryMap.set(boxKey, series);
-      }
     }
 
     function initTiles() {
@@ -849,16 +876,14 @@
     }
 
     function applyValuesByCellMap(cellMap) {
+      latestCellMap = { ...latestCellMap, ...cellMap };
       for (let i = 0; i < TOTAL_TILES; i++) {
-        const [boxKey, cfg] = boxEntries[i];
+        const [, cfg] = boxEntries[i];
         const cellKey = String(cfg[2] || "").trim().toUpperCase();
         const rawVal = cellKey ? cellMap[cellKey] : "";
         const nextText = formatCellValue(rawVal);
         if (valueElements[i] && valueElements[i].textContent !== nextText) {
           valueElements[i].textContent = nextText;
-        }
-        if (nextText !== "—") {
-          recordHistoryValue(boxKey, nextText);
         }
       }
       if (activePopupBoxIndex !== null) {
@@ -903,87 +928,102 @@
       });
     }
 
-    async function loadSheetData() {
-      const bounds = getBoundingRange();
+    async function fetchRangeToCellMap(extraRefs = []) {
+      const bounds = getBoundingRange(extraRefs);
       const cellMap = {};
 
-      try {
-        const cleanWebApp = (WEB_APP_URL || "").trim();
-        if (cleanWebApp && !cleanWebApp.includes("ใส่_")) {
-          const data = await fetchViaJsonp(cleanWebApp, bounds);
-          if (!data || !data.ok) throw new Error("Invalid Apps Script response");
+      const cleanWebApp = (WEB_APP_URL || "").trim();
+      if (cleanWebApp && !cleanWebApp.includes("ใส่_")) {
+        const data = await fetchViaJsonp(cleanWebApp, bounds);
+        if (!data || !data.ok) throw new Error("Invalid Apps Script response");
 
-          if (data.cells && typeof data.cells === "object") {
-            for (const [k, v] of Object.entries(data.cells)) {
-              cellMap[String(k).trim().toUpperCase()] = v;
-            }
-          } else if (Array.isArray(data.values)) {
-            const rows = Array.isArray(data.values[0]) ? data.values : [data.values];
-            rows.forEach((r, rIdx) => {
-              r.forEach((val, cIdx) => {
-                const ref = coordsToCellRef(bounds.minRow + rIdx, bounds.minCol + cIdx);
-                cellMap[ref] = val;
-              });
-            });
+        if (data.cells && typeof data.cells === "object") {
+          for (const [k, v] of Object.entries(data.cells)) {
+            cellMap[String(k).trim().toUpperCase()] = v;
           }
-          applyValuesByCellMap(cellMap);
-          return;
-        }
-
-        const cleanSheetId = (SPREADSHEET_ID || "").trim();
-        if (!cleanSheetId || cleanSheetId.includes("ใส่_SPREADSHEET_ID_ที่นี่")) {
-          return;
-        }
-
-        const encodedRange = encodeURIComponent(`${SHEET_NAME}!${bounds.range}`);
-        const url = `https://docs.google.com/spreadsheets/d/${cleanSheetId}/gviz/tq?range=${encodedRange}&tqx=out:json&_t=${Date.now()}`;
-        const response = await fetch(url, { cache: "no-store" });
-        if (!response.ok) throw new Error("Google Sheets response error");
-
-        const raw = await response.text();
-        const start = raw.indexOf("{");
-        const end = raw.lastIndexOf("}");
-        if (start === -1 || end === -1) throw new Error("Invalid gviz JSON");
-
-        const result = JSON.parse(raw.substring(start, end + 1));
-        const tableRows = (result.table && result.table.rows) || [];
-        tableRows.forEach((rowObj, rIdx) => {
-          const cells = (rowObj && rowObj.c) || [];
-          cells.forEach((cell, cIdx) => {
-            const ref = coordsToCellRef(bounds.minRow + rIdx, bounds.minCol + cIdx);
-            cellMap[ref] = (cell && cell.v !== null && cell.v !== undefined) ? (cell.f ?? cell.v) : "";
+        } else if (Array.isArray(data.values)) {
+          const rows = Array.isArray(data.values[0]) ? data.values : [data.values];
+          rows.forEach((r, rIdx) => {
+            r.forEach((val, cIdx) => {
+              const ref = coordsToCellRef(bounds.minRow + rIdx, bounds.minCol + cIdx);
+              cellMap[ref] = val;
+            });
           });
-        });
+        }
+        return cellMap;
+      }
 
+      const cleanSheetId = (SPREADSHEET_ID || "").trim();
+      if (!cleanSheetId || cleanSheetId.includes("ใส่_SPREADSHEET_ID_ที่นี่")) {
+        return cellMap;
+      }
+
+      const encodedRange = encodeURIComponent(`${SHEET_NAME}!${bounds.range}`);
+      const url = `https://docs.google.com/spreadsheets/d/${cleanSheetId}/gviz/tq?range=${encodedRange}&tqx=out:json&_t=${Date.now()}`;
+      const response = await fetch(url, { cache: "no-store" });
+      if (!response.ok) throw new Error("Google Sheets response error");
+
+      const raw = await response.text();
+      const start = raw.indexOf("{");
+      const end = raw.lastIndexOf("}");
+      if (start === -1 || end === -1) throw new Error("Invalid gviz JSON");
+
+      const result = JSON.parse(raw.substring(start, end + 1));
+      const tableRows = (result.table && result.table.rows) || [];
+      tableRows.forEach((rowObj, rIdx) => {
+        const cells = (rowObj && rowObj.c) || [];
+        cells.forEach((cell, cIdx) => {
+          const ref = coordsToCellRef(bounds.minRow + rIdx, bounds.minCol + cIdx);
+          cellMap[ref] = (cell && cell.v !== null && cell.v !== undefined) ? (cell.f ?? cell.v) : "";
+        });
+      });
+
+      return cellMap;
+    }
+
+    async function loadSheetData() {
+      try {
+        const cellMap = await fetchRangeToCellMap();
         applyValuesByCellMap(cellMap);
       } catch (error) {
         console.error("โหลดข้อมูล Google Sheets ไม่สำเร็จ:", error);
       }
     }
 
+    async function loadChartSeriesForBox(boxIndex) {
+      const [boxKey] = boxEntries[boxIndex];
+      const seriesCells = CHART_SERIES_CONFIG[boxKey] || [];
+      if (!seriesCells.length) return;
+
+      try {
+        const cellMap = await fetchRangeToCellMap(seriesCells);
+        latestCellMap = { ...latestCellMap, ...cellMap };
+        if (activePopupBoxIndex === boxIndex) {
+          renderLineChart(boxIndex);
+        }
+      } catch (error) {
+        console.error("โหลดข้อมูลกราฟจาก Google Sheets ไม่สำเร็จ:", error);
+      }
+    }
+
     // ===================== POPUP และกราฟเส้น (แกน X = เวลา นาที 1-60, แกน Y = ค่า) =====================
     const chartModal = document.getElementById("chartModal");
     const chartModalTitle = document.getElementById("chartModalTitle");
-    const chartModalMeta = document.getElementById("chartModalMeta");
     const closeChartModalBtn = document.getElementById("closeChartModal");
     const lineChartCanvas = document.getElementById("lineChartCanvas");
 
     function getSeriesForBox(boxIndex) {
       const [boxKey] = boxEntries[boxIndex];
-      const recorded = boxHistoryMap.get(boxKey) || [];
-      const currentNum = parseFloat(String(valueElements[boxIndex]?.textContent || "").replace(/,/g, ""));
-
-      // สร้างชุดข้อมูล 60 นาที (นาทีที่ 1 ถึง 60) โดยยังไม่ได้ล็อกสเกลแกนค่า
+      const cells = CHART_SERIES_CONFIG[boxKey] || [];
       const points = [];
+
       for (let min = 1; min <= 60; min++) {
-        const idxFromEnd = recorded.length - (61 - min);
-        if (idxFromEnd >= 0 && idxFromEnd < recorded.length) {
-          points.push(recorded[idxFromEnd]);
-        } else if (min === 60 && !Number.isNaN(currentNum)) {
-          points.push(currentNum);
-        } else {
-          points.push(null);
-        }
+        const cellRef = String(cells[min - 1] || "").trim().toUpperCase();
+        const raw = cellRef ? latestCellMap[cellRef] : undefined;
+        const num = (raw === null || raw === undefined || String(raw).trim() === "")
+          ? NaN
+          : parseFloat(String(raw).replace(/,/g, ""));
+        points.push(Number.isNaN(num) ? null : num);
       }
       return points;
     }
@@ -1004,10 +1044,10 @@
       const width = rect.width;
       const height = rect.height;
 
-      const padLeft = 82;
+      const padLeft = 72;
       const padRight = 32;
-      const padTop = 32;
-      const padBottom = 64;
+      const padTop = 28;
+      const padBottom = 42;
 
       const plotLeft = padLeft;
       const plotRight = width - padRight;
@@ -1021,7 +1061,6 @@
       const points = getSeriesForBox(boxIndex);
       const validNums = points.filter(v => typeof v === "number" && !Number.isNaN(v));
 
-      // ช่วงค่าแกน Y เบื้องต้นแบบยืดหยุ่น (ยังไม่ล็อกสเกลตายตัว)
       let minVal = validNums.length ? Math.min(...validNums) : 0;
       let maxVal = validNums.length ? Math.max(...validNums) : 100;
       if (minVal === maxVal) {
@@ -1035,7 +1074,7 @@
       ctx.textBaseline = "top";
 
       for (let minute = 1; minute <= 60; minute++) {
-        const xRatio = (minute - 1) / 59; // นาทีที่ 1 อยู่ซ้ายสุด, นาทีที่ 60 อยู่ขวาสุด
+        const xRatio = (minute - 1) / 59;
         const x = plotLeft + xRatio * plotWidth;
         const isMajor = minute === 1 || minute % 5 === 0 || minute === 60;
 
@@ -1059,7 +1098,7 @@
       ctx.textAlign = "right";
       ctx.textBaseline = "middle";
       for (let t = 0; t <= yTicks; t++) {
-        const ratio = t / yTicks; // 0 อยู่ล่างสุด (plotBottom), 1 อยู่บนสุด (plotTop)
+        const ratio = t / yTicks;
         const y = plotBottom - ratio * plotHeight;
         const tickVal = minVal + ratio * (maxVal - minVal);
 
@@ -1083,21 +1122,6 @@
       ctx.lineTo(plotLeft, plotBottom);
       ctx.lineTo(plotRight, plotBottom);
       ctx.stroke();
-
-      // ชื่อแกน X (เวลา นาทีที่ 1 ถึง 60) และชื่อแกน Y (ค่า)
-      ctx.fillStyle = "#39b7ff";
-      ctx.font = "700 13px Inter, 'Noto Sans Thai', sans-serif";
-      ctx.textAlign = "center";
-      ctx.textBaseline = "bottom";
-      ctx.fillText("เวลา (นาทีที่ 1 - 60)", plotLeft + plotWidth / 2, height - 6);
-
-      ctx.save();
-      ctx.translate(18, plotTop + plotHeight / 2);
-      ctx.rotate(-Math.PI / 2);
-      ctx.textAlign = "center";
-      ctx.textBaseline = "top";
-      ctx.fillText("ค่า (Value)", 0, 0);
-      ctx.restore();
 
       // วาดกราฟเส้น (แกน X = เวลา นาทีที่ 1-60, แกน Y = ค่า)
       const coords = [];
@@ -1128,12 +1152,6 @@
           ctx.arc(pt.x, pt.y, 4, 0, Math.PI * 2);
           ctx.fill();
         }
-      } else {
-        ctx.fillStyle = "#91a4bd";
-        ctx.font = "600 15px Inter, 'Noto Sans Thai', sans-serif";
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.fillText("รอข้อมูลจาก Google Sheet เพื่อพล็อตกราฟเส้น", plotLeft + plotWidth / 2, plotTop + plotHeight / 2);
       }
 
       ctx.restore();
@@ -1143,15 +1161,13 @@
       const [boxKey, cfg] = boxEntries[boxIndex];
       const nameA = cfg[0] || boxKey;
       const unitB = cfg[1] ? ` (${cfg[1]})` : "";
-      const cellRef = cfg[2] || "";
-      const currentVal = valueElements[boxIndex]?.textContent || "—";
 
       activePopupBoxIndex = boxIndex;
       chartModalTitle.textContent = `${nameA}${unitB}`;
-      chartModalMeta.textContent = `${boxKey} • เซลล์ ${cellRef} • ค่าปัจจุบัน: ${currentVal}`;
       chartModal.hidden = false;
 
       requestAnimationFrame(() => renderLineChart(boxIndex));
+      loadChartSeriesForBox(boxIndex);
     }
 
     function closeChartPopup() {
