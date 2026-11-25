@@ -175,6 +175,54 @@
       z-index: 2;
     }
 
+    /* สีกลุ่มที่ 2 (กล่องที่ 4, 5, 6 ของแถวที่ 2-11): เขียวมรกต */
+    .tile.col-group-456 {
+      border-color: rgba(16, 185, 129, 0.52);
+      background: linear-gradient(150deg, rgba(16, 48, 44, .98), rgba(11, 29, 36, .98));
+    }
+    .tile.col-group-456::before {
+      background: linear-gradient(90deg, transparent, rgba(16, 185, 129, .85), transparent);
+      opacity: .8;
+    }
+    .tile.col-group-456:hover {
+      border-color: rgba(52, 211, 153, .85);
+    }
+    .tile.col-group-456 .tile-meta {
+      color: #6ee7b7;
+    }
+
+    /* สีกลุ่มที่ 3 (กล่องที่ 7, 8, 9 ของแถวที่ 2-11): ม่วง */
+    .tile.col-group-789 {
+      border-color: rgba(168, 85, 247, 0.52);
+      background: linear-gradient(150deg, rgba(37, 23, 56, .98), rgba(17, 21, 43, .98));
+    }
+    .tile.col-group-789::before {
+      background: linear-gradient(90deg, transparent, rgba(168, 85, 247, .85), transparent);
+      opacity: .8;
+    }
+    .tile.col-group-789:hover {
+      border-color: rgba(192, 132, 252, .85);
+    }
+    .tile.col-group-789 .tile-meta {
+      color: #d8b4fe;
+    }
+
+    /* สีกลุ่มที่ 4 (กล่องที่ 10 ของแถวที่ 2-11): ชมพูกุหลาบ */
+    .tile.col-group-10 {
+      border-color: rgba(244, 63, 94, 0.58);
+      background: linear-gradient(150deg, rgba(53, 20, 35, .98), rgba(20, 20, 39, .98));
+    }
+    .tile.col-group-10::before {
+      background: linear-gradient(90deg, transparent, rgba(244, 63, 94, .9), transparent);
+      opacity: .85;
+    }
+    .tile.col-group-10:hover {
+      border-color: rgba(251, 113, 133, .9);
+    }
+    .tile.col-group-10 .tile-meta {
+      color: #fda4af;
+    }
+
     .tile.featured {
       padding: 7px 11px;
       border: 1.5px solid rgba(245, 158, 11, 0.7);
@@ -333,11 +381,7 @@
 
   <script>
     // ===================== ตั้งค่าการดึงข้อมูล =====================
-    // 1. วางลิงก์ Web App จาก Google Apps Script (ลงท้ายด้วย /exec)
-    //    หากเว้นว่าง "" ระบบจะดึงตรงผ่าน SPREADSHEET_ID ด้านล่างแทน
     const WEB_APP_URL = "";
-
-    // 2. หรือใช้ SPREADSHEET_ID (ต้องแชร์ไฟล์เป็น "ใครก็ตามที่มีลิงก์ดูได้")
     const SPREADSHEET_ID = "1lhYka2bJqX942P1YM7NswWeHCLRMvhb2LwO9lmZMfVM";
     const SHEET_NAME = "Dashboard";
     const DATA_RANGE = "B7:EC7";
@@ -365,6 +409,16 @@
       return text === "" ? "—" : text;
     }
 
+    function getOtherRowColorClass(otherIndex) {
+      // otherIndex เริ่มจาก 0 สำหรับกล่องที่ 1 ของแถวที่ 2
+      // ตำแหน่งในแต่ละแถว (1 ถึง 10) คือ (otherIndex % 10) + 1
+      const colInRow = (otherIndex % OTHER_COLUMNS) + 1;
+      if (colInRow >= 4 && colInRow <= 6) return " col-group-456";
+      if (colInRow >= 7 && colInRow <= 9) return " col-group-789";
+      if (colInRow === 10) return " col-group-10";
+      return ""; // กล่องที่ 1, 2, 3 ใช้สีเดิม
+    }
+
     function initTiles() {
       featuredGrid.innerHTML = "";
       grid.innerHTML = "";
@@ -372,8 +426,12 @@
 
       for (let i = 0; i < TOTAL_TILES; i++) {
         const isFeatured = i < FIRST_ROW_COUNT;
+        const extraClass = isFeatured
+          ? " featured"
+          : getOtherRowColorClass(i - FIRST_ROW_COUNT);
+
         const tile = document.createElement("article");
-        tile.className = "tile" + (isFeatured ? " featured" : "");
+        tile.className = "tile" + extraClass;
 
         const meta = document.createElement("div");
         meta.className = "tile-meta";
